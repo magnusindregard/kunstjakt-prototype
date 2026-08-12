@@ -210,24 +210,6 @@
     }
   }
 
-  #welcome-toast {
-    position: absolute;
-    top: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(74, 144, 217, 0.15);
-    border: 1px solid rgba(74, 144, 217, 0.4);
-    color: var(--text);
-    padding: 8px 20px;
-    border-radius: 999px;
-    font-size: 14px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
-  }
-
-  #welcome-toast.show { opacity: 1; }
-
   /* ---------- Result screen ---------- */
 
   #result-screen {
@@ -257,7 +239,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    height: 3px;
+    height: 5px;
     background: rgba(255, 255, 255, 0.08);
     z-index: 15;
     opacity: 0;
@@ -415,8 +397,6 @@
 
   <!-- ===================== TASK SCREEN ===================== -->
   <div id="task-screen" class="screen">
-    <div id="welcome-toast">Velkommen! Legg fingeren på den røde sirkelen for å starte.</div>
-
     <h1>Velkommen, Maja</h1>
     <p id="task-instruction">Dette er oppdrag 2 av 6. Hold fingeren din i den røde sirkelen for å se oppdraget ditt.</p>
 
@@ -458,6 +438,10 @@
   <div id="debug-panel">
     <h2>Timeout-mekanikk</h2>
     <label>
+      Inaktivitet før nedtelling starter (s)
+      <input type="number" id="cfg-init-wait" value="10" min="0" step="1">
+    </label>
+    <label>
       Fade inn (ms)
       <input type="number" id="cfg-fade-in" value="400" min="50" step="50">
     </label>
@@ -481,6 +465,7 @@
       "use strict";
 
       // ---- Config (live-editable via the settings panel) ----
+      let INIT_WAIT_MS = 10000;
       let FADE_IN_MS = 400;
       let GRACE_MS = 1000;
       let FADE_OUT_MS = 7000;
@@ -502,7 +487,6 @@
       const circle = document.getElementById("circle");
       const countdownBar = document.getElementById("countdown-bar");
       const countdownBarFill = document.getElementById("countdown-bar-fill");
-      const welcomeToast = document.getElementById("welcome-toast");
 
       const CORRECT_ANSWER = "Nesodden";
       const QUESTION_INSTRUCTION = "Dette er oppdrag 2 av 6. Hold fingeren din i den røde sirkelen for å se oppdraget ditt.";
@@ -510,6 +494,7 @@
 
       const debugToggle = document.getElementById("debug-toggle");
       const debugPanel = document.getElementById("debug-panel");
+      const cfgInitWait = document.getElementById("cfg-init-wait");
       const cfgFadeIn = document.getElementById("cfg-fade-in");
       const cfgGrace = document.getElementById("cfg-grace");
       const cfgFadeout = document.getElementById("cfg-fadeout");
@@ -518,6 +503,8 @@
 
       // ---- State ----
       let holding = false;
+      let idleTimer = null;
+      let idleEndsAt = null;    // epoch ms
       let graceTimer = null;
       let fadeOutTimer = null;
       let graceEndsAt = null;   // epoch ms
@@ -557,10 +544,21 @@
         taskScreen.style.display = "flex";
         resetTaskState();
 
-        welcomeToast.classList.add("show");
-        setTimeout(() => welcomeToast.classList.remove("show"), 3500);
+        readConfig();
+        idleEndsAt = Date.now() + INIT_WAIT_MS;
+        idleTimer = setTimeout(onIdleTimeout, INIT_WAIT_MS);
 
         startStatusTicker();
+      }
+
+      // If nothing happens for a while after login, treat it the same as an
+      // unattended task: start the same return-to-login countdown that
+      // normally begins when the circle is released.
+      function onIdleTimeout() {
+        idleTimer = null;
+        idleEndsAt = null;
+        startCountdown(FADE_OUT_MS);
+        startFadeOut();
       }
 
       function returnToLogin() {
@@ -589,8 +587,10 @@
       }
 
       function clearTimers() {
+        if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
         if (graceTimer) { clearTimeout(graceTimer); graceTimer = null; }
         if (fadeOutTimer) { clearTimeout(fadeOutTimer); fadeOutTimer = null; }
+        idleEndsAt = null;
         graceEndsAt = null;
         fadeOutEndsAt = null;
       }
@@ -629,6 +629,7 @@
       }
 
       function readConfig() {
+        INIT_WAIT_MS = Math.max(0, Number(cfgInitWait.value) || 0) * 1000;
         FADE_IN_MS = Math.max(0, Number(cfgFadeIn.value) || 0);
         GRACE_MS = Math.max(0, Number(cfgGrace.value) || 0) * 1000;
         FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1) * 1000;
@@ -725,7 +726,7 @@
         debugPanel.classList.toggle("open");
       });
 
-      [cfgFadeIn, cfgGrace, cfgFadeout, cfgResult].forEach((input) => {
+      [cfgInitWait, cfgFadeIn, cfgGrace, cfgFadeout, cfgResult].forEach((input) => {
         input.addEventListener("change", readConfig);
       });
 
@@ -753,6 +754,9 @@
         } else if (graceEndsAt) {
           state = "VENTER";
           detail = Math.max(0, (graceEndsAt - now) / 1000).toFixed(1) + "s til nedtoning starter";
+        } else if (idleEndsAt) {
+          state = "VENTER PÅ BERØRING";
+          detail = Math.max(0, (idleEndsAt - now) / 1000).toFixed(1) + "s til nedtelling starter automatisk";
         } else {
           state = "IDLE";
           detail = "-";
