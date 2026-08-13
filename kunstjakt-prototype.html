@@ -130,6 +130,7 @@
     justify-content: center;
     gap: clamp(16px, 3vw, 32px);
     min-height: 0;
+    padding-bottom: 190px;
     opacity: 0;
   }
 
@@ -171,6 +172,19 @@
 
   #task-options.visible {
     display: flex;
+  }
+
+  #task-hint {
+    display: none;
+    color: var(--muted);
+    font-size: clamp(15px, 2vw, 18px);
+    text-align: center;
+    max-width: 480px;
+    padding: 0 clamp(16px, 4vw, 48px);
+  }
+
+  #task-hint.visible {
+    display: block;
   }
 
   .option-btn {
@@ -294,11 +308,8 @@
     letter-spacing: 0.08em;
     opacity: 0.9;
     pointer-events: none;
-    transition: opacity 0.15s ease;
-  }
-
-  #circle.active #circle-label {
-    opacity: 0;
+    transition-property: opacity;
+    transition-timing-function: ease;
   }
 
   /* ---------- Debug / settings panel ---------- */
@@ -409,6 +420,7 @@
           draggable="false"
         >
       </div>
+      <div id="task-hint">Svaret finner du i dette rommet, kom tilbake når du har funnet det!</div>
       <div id="task-options">
         <button type="button" class="option-btn" data-answer="Bergen">Bergen</button>
         <button type="button" class="option-btn" data-answer="Geiranger">Geiranger</button>
@@ -483,8 +495,10 @@
       const taskContent = document.getElementById("task-content");
       const taskInstruction = document.getElementById("task-instruction");
       const taskOptions = document.getElementById("task-options");
+      const taskHint = document.getElementById("task-hint");
       const optionButtons = Array.from(document.querySelectorAll(".option-btn"));
       const circle = document.getElementById("circle");
+      const circleLabel = document.getElementById("circle-label");
       const countdownBar = document.getElementById("countdown-bar");
       const countdownBarFill = document.getElementById("countdown-bar-fill");
 
@@ -539,6 +553,7 @@
         isAnswerMode = loginCount % 2 === 0;
         taskInstruction.textContent = isAnswerMode ? ANSWER_INSTRUCTION : QUESTION_INSTRUCTION;
         taskOptions.classList.toggle("visible", isAnswerMode);
+        taskHint.classList.toggle("visible", !isAnswerMode);
 
         loginScreen.style.display = "none";
         taskScreen.style.display = "flex";
@@ -583,7 +598,21 @@
         taskContent.style.transitionDuration = "0ms";
         taskContent.style.opacity = "0";
         taskContent.style.pointerEvents = "none";
+        showLabel(0);
         hideCountdown();
+      }
+
+      // The label mirrors the task content: it hides at the same speed the
+      // content fades in, and reappears at the same speed the content fades
+      // out, so the two read as a single synchronized crossfade.
+      function hideLabel(durationMs) {
+        circleLabel.style.transitionDuration = durationMs + "ms";
+        circleLabel.style.opacity = "0";
+      }
+
+      function showLabel(durationMs) {
+        circleLabel.style.transitionDuration = durationMs + "ms";
+        circleLabel.style.opacity = "0.9";
       }
 
       function clearTimers() {
@@ -650,6 +679,7 @@
         circle.classList.add("active");
         hideCountdown();
         fadeIn();
+        hideLabel(FADE_IN_MS);
       }
 
       function onHoldEnd() {
@@ -667,6 +697,7 @@
         readConfig();
         taskContent.style.transitionDuration = FADE_OUT_MS + "ms";
         taskContent.style.opacity = "0";
+        showLabel(FADE_OUT_MS);
         fadeOutEndsAt = Date.now() + FADE_OUT_MS;
         fadeOutTimer = setTimeout(() => {
           returnToLogin();
