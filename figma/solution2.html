@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Kunstjakt – Solution 2 (OK GO!)</title>
+<style>
+  :root {
+    --white: #ffffff;
+    --ink: #1e1e1d;
+    --yellow: #ffe700;
+    --blue: #209bd3;
+    --blue-dark: #166d95;
+    --pink: #e13082;
+    --coral: #f2645a;
+    --coral-dark: #d94b41;
+    --green: #217b39;
+    --orange: #ffbd72;
+    --gray-border: #7e7e7e;
+    --font: 'Museet Sans Text', 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--white);
+    font-family: var(--font);
+    color: var(--ink);
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* ---------- Scaled 1600x900 stage ---------- */
+  #viewport {
+    position: fixed;
+    inset: 0;
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #stage {
+    position: relative;
+    width: 1600px;
+    height: 900px;
+    background: var(--white);
+    overflow: hidden;
+    transform: scale(var(--s, 1));
+    transform-origin: center center;
+    flex: 0 0 auto;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: none;
+  }
+  .screen.active { display: block; }
+
+  .blob {
+    position: absolute;
+    pointer-events: none;
+    display: block;
+  }
+
+  /* ---------- Badge "3" ---------- */
+  .badge {
+    position: absolute;
+    width: 102px;
+    height: 107px;
+  }
+  .badge img { width: 100%; height: 100%; display: block; }
+  .badge span {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    color: var(--ink);
+    padding-bottom: 2px;
+  }
+
+  /* ---------- Attract text ---------- */
+  .wordmark {
+    position: absolute;
+    left: 86px;
+    top: 396px;
+    transform: translateY(-50%);
+    font-size: 350px;
+    line-height: 1;
+    letter-spacing: -7px;
+    white-space: nowrap;
+  }
+  .tagline {
+    position: absolute;
+    left: 94px;
+    top: 718px;
+    width: 560px;
+    font-size: 40px;
+    line-height: 1.2;
+  }
+
+  .btn-start {
+    position: absolute;
+    left: 1241px;
+    top: 713px;
+    height: 106px;
+    padding: 0 51px;
+    display: inline-flex;
+    align-items: center;
+    gap: 17px;
+    background: var(--orange);
+    border: none;
+    border-radius: 8.48px;
+    box-shadow: 0 4px 0 0 var(--ink);
+    font-family: var(--font);
+    font-size: 38px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn-start img { width: 42px; height: 32px; display: block; }
+  .btn-start:active { transform: translateY(2px); box-shadow: 0 2px 0 0 var(--ink); }
+
+  /* ===================== TASK (Solution 2) ===================== */
+
+  /* Logout link – always available, top right */
+  .btn-logout {
+    position: absolute;
+    right: 78px;
+    top: 96px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    border: none;
+    font-family: var(--font);
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: pointer;
+    padding: 8px 4px;
+  }
+  .btn-logout u { text-underline-offset: 5px; }
+  .btn-logout:active { opacity: 0.6; }
+
+  #greeting {
+    position: absolute;
+    left: 210px;
+    top: 108px;
+    font-size: 76px;
+    line-height: 1;
+    letter-spacing: -1.52px;
+    white-space: nowrap;
+  }
+  #mission-meta {
+    position: absolute;
+    left: 80px;
+    top: 250px;
+    font-size: 40px;
+    letter-spacing: -0.4px;
+  }
+
+  #question {
+    position: absolute;
+    left: 78px;
+    top: 330px;
+    width: 700px;
+    font-size: 40px;
+    line-height: 1.28;
+    letter-spacing: -0.4px;
+    white-space: pre-line;
+  }
+
+  #painting {
+    position: absolute;
+    left: 1002px;
+    top: 150px;
+    width: 520px;
+    height: auto;
+    display: block;
+    border-radius: 4px;
+  }
+
+  /* OK GO! action button – only shown in "find" mode (first login) */
+  #btn-go {
+    position: absolute;
+    left: 820px;
+    top: 470px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: var(--coral);
+    border: none;
+    box-shadow: 0 6px 0 0 var(--coral-dark);
+    font-family: var(--font);
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1.05;
+    color: var(--white);
+    cursor: pointer;
+    display: none;
+  }
+  #task.find-mode #btn-go { display: block; }
+  #btn-go:active { transform: translateY(3px); box-shadow: 0 3px 0 0 var(--coral-dark); }
+
+  /* Answer options – only shown in "answer" mode (later logins) */
+  #options {
+    position: absolute;
+    left: 78px;
+    top: 700px;
+    width: 1120px;
+    display: none;
+    flex-wrap: wrap;
+    gap: 32px;
+  }
+  #task.answer-mode #options { display: flex; }
+
+  .option-btn {
+    height: 84px;
+    padding: 0 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--orange);
+    border: 2.12px solid var(--gray-border);
+    border-radius: 8.48px;
+    font-family: var(--font);
+    font-size: 30px;
+    color: var(--ink);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .option-btn:active, .option-btn.pressed { transform: scale(0.96); }
+
+  /* ---------- Countdown bar (bottom of stage, shared) ---------- */
+  #countdown-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 18px;
+    background: rgba(30,30,29,0.08);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+  #countdown-bar.visible { opacity: 1; }
+  #countdown-bar-fill {
+    height: 100%;
+    width: 100%;
+    background: var(--coral);
+    transform-origin: left center;
+  }
+
+  /* ---------- Result screen ---------- */
+  #result-graphic-correct {
+    position: absolute;
+    left: 647px;
+    top: 102px;
+    width: 306px;
+    display: none;
+  }
+  #result.correct #result-graphic-correct { display: block; }
+
+  #result-graphic-wrong {
+    position: absolute;
+    left: 706px;
+    top: 204px;
+    width: 194px;
+    display: none;
+  }
+  #result.wrong #result-graphic-wrong { display: block; }
+  #result-graphic-wrong .flower { width: 194px; display: block; }
+  #result-graphic-wrong .x {
+    position: absolute;
+    left: 54px;
+    top: 58px;
+    width: 85px;
+  }
+
+  #result .r-blob { display: none; }
+  #result.correct .r-blob { display: block; }
+
+  #result-title {
+    position: absolute;
+    left: 50%;
+    top: 500px;
+    transform: translate(-50%, -50%);
+    font-size: 96px;
+    letter-spacing: -1.92px;
+    white-space: nowrap;
+    line-height: 1;
+    text-align: center;
+  }
+  #result-sub {
+    position: absolute;
+    left: 50%;
+    top: 640px;
+    transform: translate(-50%, -50%);
+    width: 640px;
+    font-size: 40px;
+    line-height: 1.2;
+    letter-spacing: -0.4px;
+    text-align: center;
+  }
+  #progress {
+    position: absolute;
+    left: 78px;
+    top: 760px;
+    width: 150px;
+    display: block;
+  }
+  #progress-text {
+    position: absolute;
+    left: 78px;
+    top: 812px;
+    font-size: 25px;
+    letter-spacing: -0.25px;
+    white-space: nowrap;
+  }
+
+  /* ---------- Debug / settings ---------- */
+  #debug-toggle {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 40;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #666;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #debug-panel {
+    position: fixed;
+    top: 52px; right: 12px;
+    z-index: 40;
+    width: 300px;
+    background: #1e2126;
+    color: #eee;
+    border-radius: 12px;
+    padding: 16px;
+    font-family: -apple-system, Arial, sans-serif;
+    font-size: 13px;
+    display: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  #debug-panel.open { display: block; }
+  #debug-panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #9aa; margin: 0 0 10px;
+  }
+  #debug-panel label {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; margin-bottom: 9px;
+  }
+  #debug-panel input {
+    width: 66px; padding: 4px 6px; border-radius: 6px;
+    border: 1px solid #444; background: #14161a; color: #eee; font-size: 13px;
+  }
+  #debug-status {
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;
+    font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+    line-height: 1.6; color: #9aa; white-space: pre;
+  }
+</style>
+</head>
+<body>
+
+<div id="viewport">
+  <div id="stage">
+
+    <!-- ===================== ATTRACT ===================== -->
+    <div id="attract" class="screen active">
+      <img class="blob" src="assets/blob58-d.svg" style="left:855px;top:-235px;width:304px">
+      <img class="blob" src="assets/blob58-a.svg" style="left:507px;top:-150px;width:370px">
+      <img class="blob" src="assets/blob58-b.svg" style="left:981px;top:-138px;width:436px">
+      <img class="blob" src="assets/blob58-e.svg" style="left:1220px;top:202px;width:268px">
+      <img class="blob" src="assets/blob58-c.svg" style="left:838px;top:695px;width:438px">
+      <img class="blob" src="assets/blob-bottomleft.svg" style="left:-140px;top:1002px;width:334px">
+
+      <div class="badge" style="left:94px;top:91px"><img src="assets/badge.svg"><span>3</span></div>
+      <div class="wordmark">Kunstjakt</div>
+      <div class="tagline">Bli med og få alle riktige!<br>Meld deg på i resepsjonen.</div>
+      <button class="btn-start" id="btn-start">Start <img src="assets/arrow.svg"></button>
+    </div>
+
+    <!-- ===================== TASK (Solution 2) ===================== -->
+    <div id="task" class="screen">
+      <img class="blob" src="assets/blob59-topright.svg" style="left:1156px;top:-216px;width:444px">
+      <img class="blob" src="assets/blob-bottomleft.svg" style="left:-90px;top:648px;width:320px">
+
+      <div class="badge" style="left:78px;top:91px"><img src="assets/badge.svg"><span>3</span></div>
+
+      <!-- Logout – always available -->
+      <button class="btn-logout" id="btn-logout">Ikke deg? <u>Bytt bruker</u></button>
+
+      <div id="greeting">Hei, Maja</div>
+      <div id="mission-meta">Oppdrag 2 av 6</div>
+      <div id="question"></div>
+
+      <img id="painting" src="assets/painting.png">
+
+      <button id="btn-go">OK,<br>GO!</button>
+
+      <div id="options">
+        <button type="button" class="option-btn" data-answer="Han ror">Han ror</button>
+        <button type="button" class="option-btn" data-answer="Han fisker">Han fisker</button>
+        <button type="button" class="option-btn" data-answer="Han synger en lang sang">Han synger en lang sang</button>
+        <button type="button" class="option-btn" data-answer="Han styrer båten">Han styrer båten</button>
+      </div>
+    </div>
+
+    <!-- ===================== RESULT ===================== -->
+    <div id="result" class="screen">
+      <img class="blob r-blob" src="assets/blob55-c.svg" style="left:775px;top:-101px;width:425px">
+      <img class="blob r-blob" src="assets/blob55-lightblue.svg" style="left:1064px;top:114px;width:423px">
+      <img id="result-graphic-correct" src="assets/check-star.svg">
+      <div id="result-graphic-wrong">
+        <img class="flower" src="assets/flower.svg">
+        <img class="x" src="assets/x-icon.svg">
+      </div>
+
+      <div class="badge" style="left:78px;top:91px"><img src="assets/badge.svg"><span>3</span></div>
+      <div id="result-title"></div>
+      <div id="result-sub"></div>
+
+      <img id="progress" src="assets/progress-3of6.svg">
+      <div id="progress-text">Du har nå klart 3 av 6 oppgaver!</div>
+    </div>
+
+    <!-- Countdown bar (bottom of stage, shared) -->
+    <div id="countdown-bar"><div id="countdown-bar-fill"></div></div>
+
+  </div>
+</div>
+
+<!-- ===================== DEBUG / SETTINGS ===================== -->
+<button id="debug-toggle" title="Innstillinger">⚙</button>
+<div id="debug-panel">
+  <h2>Solution 2 – tidsstyring</h2>
+  <label>Tid før nedtelling vises (s)<input type="number" id="cfg-before" value="5" min="0" step="1"></label>
+  <label>Nedtelling, varighet (s)<input type="number" id="cfg-countdown" value="10" min="1" step="1"></label>
+  <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="5" min="1" step="1"></label>
+  <div id="debug-status"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Config (live-editable) ----
+  let TIME_BEFORE_MS = 5000;   // delay before the countdown bar starts visibly counting
+  let COUNTDOWN_MS = 10000;    // how long the visible countdown runs before auto-return
+  let RESULT_DISPLAY_MS = 5000;
+
+  const CORRECT_ANSWER = "Han ror";
+  const QUESTION_FIND =
+    "Finn maleriet «Brudeferden i Hardanger» av\n" +
+    "Hans Gude og Adolph Tidemann.\n\n" +
+    "Hva gjør personen fremst i båten?\n\n" +
+    "Klar til å finne svaret?";
+  const QUESTION_ANSWER =
+    "Finn maleriet «Brudeferden i Hardanger» av\n" +
+    "Hans Gude og Adolph Tidemann.\n\n" +
+    "Hva gjør personen fremst i båten?";
+
+  // ---- Elements ----
+  const stage = document.getElementById("stage");
+  const attractScreen = document.getElementById("attract");
+  const taskScreen = document.getElementById("task");
+  const resultScreen = document.getElementById("result");
+  const btnStart = document.getElementById("btn-start");
+  const btnLogout = document.getElementById("btn-logout");
+  const btnGo = document.getElementById("btn-go");
+  const question = document.getElementById("question");
+  const optionButtons = Array.from(document.querySelectorAll(".option-btn"));
+  const resultTitle = document.getElementById("result-title");
+  const resultSub = document.getElementById("result-sub");
+  const countdownBar = document.getElementById("countdown-bar");
+  const countdownFill = document.getElementById("countdown-bar-fill");
+
+  const debugToggle = document.getElementById("debug-toggle");
+  const debugPanel = document.getElementById("debug-panel");
+  const cfgBefore = document.getElementById("cfg-before");
+  const cfgCountdown = document.getElementById("cfg-countdown");
+  const cfgResult = document.getElementById("cfg-result");
+  const debugStatus = document.getElementById("debug-status");
+
+  // ---- State ----
+  let sessionCount = 0;
+  let isAnswerMode = false;
+  let beforeTimer = null, beforeEndsAt = null;
+  let countdownRaf = null, countdownStartedAt = null, countdownEndsAt = null;
+  let resultTimer = null;
+  let statusTicker = null;
+
+  // ---- Responsive scale ----
+  function fitStage() {
+    const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900);
+    stage.style.setProperty("--s", s);
+  }
+  window.addEventListener("resize", fitStage);
+  fitStage();
+
+  // ================= Config =================
+  function readConfig() {
+    TIME_BEFORE_MS = Math.max(0, Number(cfgBefore.value) || 0) * 1000;
+    COUNTDOWN_MS = Math.max(1, Number(cfgCountdown.value) || 1) * 1000;
+    RESULT_DISPLAY_MS = Math.max(1, Number(cfgResult.value) || 1) * 1000;
+  }
+  [cfgBefore, cfgCountdown, cfgResult].forEach(function (i) {
+    i.addEventListener("change", readConfig);
+  });
+  debugToggle.addEventListener("click", function () { debugPanel.classList.toggle("open"); });
+
+  // ================= Screen switching =================
+  function showScreen(el) {
+    [attractScreen, taskScreen, resultScreen].forEach(function (s) { s.classList.remove("active"); });
+    el.classList.add("active");
+  }
+
+  function returnToAttract() {
+    clearAllTimers();
+    stopStatusTicker();
+    hideCountdown();
+    resultScreen.classList.remove("correct", "wrong");
+    showScreen(attractScreen);
+  }
+
+  // ================= Start a session =================
+  btnStart.addEventListener("click", function () {
+    sessionCount += 1;
+    isAnswerMode = (sessionCount % 2 === 0); // 1st visit: find (OK GO!); 2nd: answer
+    enterTask();
+  });
+
+  function enterTask() {
+    readConfig();
+    taskScreen.classList.toggle("find-mode", !isAnswerMode);
+    taskScreen.classList.toggle("answer-mode", isAnswerMode);
+    question.textContent = isAnswerMode ? QUESTION_ANSWER : QUESTION_FIND;
+
+    hideCountdown();
+    showScreen(taskScreen);
+
+    // The mission is visible immediately. The countdown bar stays hidden for a
+    // few seconds so it doesn't rush the reader, then it appears and runs down.
+    beforeEndsAt = Date.now() + TIME_BEFORE_MS;
+    beforeTimer = setTimeout(startCountdown, TIME_BEFORE_MS);
+    startStatusTicker();
+  }
+
+  function clearAllTimers() {
+    if (beforeTimer) { clearTimeout(beforeTimer); beforeTimer = null; }
+    if (resultTimer) { clearTimeout(resultTimer); resultTimer = null; }
+    cancelCountdown();
+    beforeEndsAt = null;
+    countdownEndsAt = null;
+  }
+
+  // ================= Countdown bar =================
+  function startCountdown() {
+    if (beforeTimer) { clearTimeout(beforeTimer); beforeTimer = null; }
+    beforeEndsAt = null;
+    readConfig();
+    countdownStartedAt = Date.now();
+    countdownEndsAt = countdownStartedAt + COUNTDOWN_MS;
+    countdownBar.classList.add("visible");
+    tickCountdown();
+  }
+  function tickCountdown() {
+    const elapsed = Date.now() - countdownStartedAt;
+    const frac = COUNTDOWN_MS > 0 ? Math.min(1, elapsed / COUNTDOWN_MS) : 1;
+    countdownFill.style.transform = "scaleX(" + (1 - frac) + ")";
+    if (frac < 1) {
+      countdownRaf = requestAnimationFrame(tickCountdown);
+    } else {
+      countdownRaf = null;
+      returnToAttract();
+    }
+  }
+  function cancelCountdown() {
+    if (countdownRaf) { cancelAnimationFrame(countdownRaf); countdownRaf = null; }
+    countdownStartedAt = null;
+  }
+  function hideCountdown() {
+    cancelCountdown();
+    countdownEndsAt = null;
+    countdownBar.classList.remove("visible");
+    countdownFill.style.transform = "scaleX(1)";
+  }
+
+  // ================= Actions =================
+  // "OK, GO!" – the user has read the mission and is heading off to find it.
+  // Return to the idle screen immediately.
+  btnGo.addEventListener("click", returnToAttract);
+
+  // Logout – always available.
+  btnLogout.addEventListener("click", returnToAttract);
+
+  // Answer selection (only meaningful in answer mode).
+  optionButtons.forEach(function (button) {
+    button.addEventListener("pointerdown", function (e) { e.preventDefault(); button.classList.add("pressed"); });
+    const release = function () { button.classList.remove("pressed"); };
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("pointerleave", release);
+    button.addEventListener("pointerup", function (e) {
+      e.preventDefault();
+      button.classList.remove("pressed");
+      if (!isAnswerMode) return;
+      selectAnswer(button.dataset.answer);
+    });
+  });
+
+  function selectAnswer(answer) {
+    clearAllTimers();
+    stopStatusTicker();
+    hideCountdown();
+    showResult(answer === CORRECT_ANSWER);
+  }
+
+  function showResult(correct) {
+    readConfig();
+    resultScreen.classList.remove("correct", "wrong");
+    resultScreen.classList.add(correct ? "correct" : "wrong");
+    resultTitle.textContent = correct ? "Bra, Maja!" : "Ai, nesten!";
+    resultSub.textContent = correct ? "Personen foran ror båten. Godt sett!" : "Ta en titt til!";
+    showScreen(resultScreen);
+    resultTimer = setTimeout(returnToAttract, RESULT_DISPLAY_MS);
+  }
+
+  // ================= Debug status =================
+  function startStatusTicker() { stopStatusTicker(); statusTicker = setInterval(updateStatus, 100); updateStatus(); }
+  function stopStatusTicker() { if (statusTicker) { clearInterval(statusTicker); statusTicker = null; } debugStatus.textContent = ""; }
+  function updateStatus() {
+    const now = Date.now();
+    let state, detail;
+    if (countdownEndsAt) { state = "NEDTELLING"; detail = Math.max(0, (countdownEndsAt - now) / 1000).toFixed(1) + "s til attract"; }
+    else if (beforeEndsAt) { state = "LESER"; detail = Math.max(0, (beforeEndsAt - now) / 1000).toFixed(1) + "s til nedtelling vises"; }
+    else { state = "IDLE"; detail = "-"; }
+    debugStatus.textContent = "Status: " + state + "\n" + detail + "\nmodus: " + (isAnswerMode ? "svar" : "finn (OK GO!)");
+  }
+})();
+</script>
+</body>
+</html>
