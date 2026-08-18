@@ -199,6 +199,36 @@
   }
   .option-btn:active, .option-btn.pressed { transform: scale(0.96); }
 
+  /* ---------- Welcome layer (shown before first touch) ---------- */
+  #welcome-layer {
+    position: absolute;
+    inset: 0;
+    opacity: 1;
+    transition-property: opacity;
+    transition-timing-function: ease;
+    transition-duration: 0ms;
+  }
+  #welcome-title {
+    position: absolute;
+    left: 78px;
+    top: 373px;
+    transform: translateY(-50%);
+    font-size: 76px;
+    line-height: 1;
+    letter-spacing: -1.52px;
+    white-space: nowrap;
+  }
+  #welcome-sub {
+    position: absolute;
+    left: 80px;
+    top: 503px;
+    transform: translateY(-50%);
+    width: 517px;
+    font-size: 40px;
+    line-height: 1.2;
+    letter-spacing: -0.4px;
+  }
+
   /* Revealable content (hold-to-reveal) */
   #reveal {
     opacity: 0;
@@ -408,14 +438,24 @@
 
     <!-- ===================== TASK (Frame 59 / 70) ===================== -->
     <div id="task" class="screen">
-      <!-- always-visible decoration -->
-      <img class="blob" src="assets/blob59-topright.svg" style="left:1156px;top:-216px;width:444px">
-      <img class="blob" src="assets/blob59-bottom.svg" style="left:775px;top:856px;width:438px">
-      <img class="blob" src="assets/blob-bottomleft.svg" style="left:-90px;top:648px;width:320px">
+      <!-- persistent badge -->
       <div class="badge" style="left:78px;top:91px"><img src="assets/badge.svg"><span>3</span></div>
+
+      <!-- welcome layer: what the user sees on login, before first touch -->
+      <div id="welcome-layer">
+        <img class="blob" src="assets/welcome-pink-blob.svg" style="left:1207px;top:-26px;width:149px">
+        <img class="blob" src="assets/welcome-yellow-cluster.png" style="left:793px;top:171px;width:637px">
+        <img class="blob" src="assets/welcome-purple-star.svg" style="left:728px;top:227px;width:189px">
+        <img class="blob" src="assets/welcome-yellow-star.svg" style="left:917px;top:721px;width:330px">
+        <div id="welcome-title">Hei, Kristine!</div>
+        <div id="welcome-sub">Hold på den blå sirkelen for å få oppdraget ditt</div>
+      </div>
 
       <!-- revealable content -->
       <div id="reveal">
+        <img class="blob" src="assets/blob59-topright.svg" style="left:1156px;top:-216px;width:444px">
+        <img class="blob" src="assets/blob59-bottom.svg" style="left:775px;top:856px;width:438px">
+        <img class="blob" src="assets/blob-bottomleft.svg" style="left:-90px;top:648px;width:320px">
         <img id="painting" src="assets/painting.png">
         <div id="question"></div>
         <div id="options">
@@ -505,6 +545,7 @@
   const optionButtons = Array.from(document.querySelectorAll(".option-btn"));
   const holdCircle = document.getElementById("hold-circle");
   const holdText = document.getElementById("hold-text");
+  const welcomeLayer = document.getElementById("welcome-layer");
   const resultTitle = document.getElementById("result-title");
   const resultSub = document.getElementById("result-sub");
   const countdownBar = document.getElementById("countdown-bar");
@@ -599,6 +640,8 @@
     reveal.style.transitionDuration = "0ms";
     reveal.style.opacity = "0";
     reveal.style.pointerEvents = "none";
+    welcomeLayer.style.transitionDuration = "0ms";
+    welcomeLayer.style.opacity = "1";
     showHoldText(0);
     hideCountdown();
   }
@@ -620,6 +663,8 @@
     reveal.style.transitionDuration = FADE_IN_MS + "ms";
     reveal.style.opacity = "1";
     reveal.style.pointerEvents = "auto";
+    welcomeLayer.style.transitionDuration = FADE_IN_MS + "ms";
+    welcomeLayer.style.opacity = "0";
   }
 
   function onHoldStart(e) {
