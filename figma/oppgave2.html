@@ -326,26 +326,12 @@
   }
   #task-layer { opacity: 0; pointer-events: none; }
 
-  /* This task's painting is a plain rectangular photo, not a pre-masked export
-     like the v2 ones. It borrows its blob silhouette from the alpha channel of
-     those exports, so the shape still comes from the design assets. */
-  .painting { overflow: hidden; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-              -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
-  .painting img {
-    width: 100%;
-    height: 100%;
-    display: block;
-    object-fit: cover;
-    object-position: 50% 12%; /* portrait source: keep her head and the glass in frame */
-  }
-  #painting-find {
-    position: absolute; left: 823px; top: 223px; width: 637px; height: 516px;
-    -webkit-mask-image: url(assets/v2/painting-lg.png); mask-image: url(assets/v2/painting-lg.png);
-  }
-  #painting-answer {
-    position: absolute; left: 933px; top: 228px; width: 437px; height: 355px;
-    -webkit-mask-image: url(assets/v2/painting-sm.png); mask-image: url(assets/v2/painting-sm.png);
-  }
+  /* melk-*.png are the melkeglass photo already composited into the same blob
+     silhouettes as the v2 paintings, so these are plain images like the v2 ones
+     rather than anything masked at runtime. Regenerate them from
+     painting-melkeglass.jpg if the crop needs to change. */
+  #painting-find { position: absolute; left: 823px; top: 223px; width: 637px; height: 516px; }
+  #painting-answer { position: absolute; left: 933px; top: 228px; width: 437px; height: 355px; }
 
   #q-find   { position: absolute; left: 127px; top: 453px; transform: translateY(-50%); width: 626px; }
   #q-answer { position: absolute; left: 121px; top: 433.5px; transform: translateY(-50%); width: 629px; }
@@ -383,10 +369,7 @@
   #burst .cshape { position: absolute; display: block; }
 
   /* ---------- Result: wrong ---------- */
-  #painting-wrong {
-    position: absolute; left: 754px; top: 184px; width: 587px; height: 476px;
-    -webkit-mask-image: url(assets/v2/painting-md.png); mask-image: url(assets/v2/painting-md.png);
-  }
+  #painting-wrong { position: absolute; left: 754px; top: 184px; width: 587px; height: 476px; }
 
   /* ---------- Debug / settings ---------- */
   #debug-toggle {
@@ -494,8 +477,8 @@ Passer for barn fra 7-10 år</div>
     <div id="task" class="screen find-mode">
       <div class="badge" style="left:110px;top:91px"><img src="assets/v2/badge.svg" alt=""><span>5</span></div>
       <div id="task-layer">
-        <div id="painting-find" class="painting"><img src="assets/v2/painting-melkeglass.jpg" alt="Maleri av en kvinne som holder et glass melk"></div>
-        <div id="painting-answer" class="painting"><img src="assets/v2/painting-melkeglass.jpg" alt="Maleri av en kvinne som holder et glass melk"></div>
+        <img id="painting-find" src="assets/v2/melk-lg.png" alt="Maleri av en kvinne som holder et glass melk">
+        <img id="painting-answer" src="assets/v2/melk-sm.png" alt="Maleri av en kvinne som holder et glass melk">
         <div id="q-find" class="t t-task"></div>
         <div id="q-answer" class="t t-task"></div>
         <div id="options">
@@ -534,7 +517,7 @@ Passer for barn fra 7-10 år</div>
 
     <!-- ===================== RESPONSE: WRONG ===================== -->
     <div id="wrong" class="screen">
-      <div id="painting-wrong" class="painting"><img src="assets/v2/painting-melkeglass.jpg" alt="Maleri av en kvinne som holder et glass melk"></div>
+      <img id="painting-wrong" src="assets/v2/melk-md.png" alt="Maleri av en kvinne som holder et glass melk">
       <div class="t t-display" style="left:111px;top:272px;width:481px;line-height:0.8">Ai, nesten..</div>
       <!-- No hint for this task, so "Prøv igjen!" takes the hint's place. -->
       <div class="t t-note" style="left:111px;top:422px;width:487px">Prøv igjen!</div>
