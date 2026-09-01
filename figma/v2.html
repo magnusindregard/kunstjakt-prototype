@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Kunstjakten – prototype v2 (16:9)</title>
+<style>
+  :root {
+    /* Visual toolbox — colours straight from the Figma file */
+    --white: #ffffff;
+    --ink: #1e1e1d;
+    --yellow: #ffe700;
+    --blue: #209bd3;
+    --lightblue: #addbe9;
+    --pink: #e13082;
+    --green: #217b39;
+    --lightgreen: #b3d181;
+    --lilac: #deafd2;
+    --orange: #f39327;      /* hold-circle orange */
+    --orange-soft: #ffbd72; /* button shadow + progress bar */
+    --border: #949494;
+    --font: 'Museet Sans Text', 'Helvetica Neue', Arial, sans-serif;
+
+    /* Screen transition. Shapes reposition while the layer is faded out, so
+       nothing snaps in view. When the shape animation lands, this is the knob
+       to swap for a transform transition on .shape itself. */
+    --xfade: 220ms;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--white);
+    font-family: var(--font);
+    color: var(--ink);
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---------- Scaled 1600x900 (16:9) stage ---------- */
+  #viewport {
+    position: fixed;
+    inset: 0;
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  #stage {
+    position: relative;
+    width: 1600px;
+    height: 900px;
+    background: var(--white);
+    overflow: hidden;
+    transform: scale(var(--s, 1));
+    transform-origin: center center;
+    flex: 0 0 auto;
+  }
+
+  /* ---------- Shape layer ----------
+     One persistent element per shape in the toolbox. Every screen gives every
+     shape a position (in view or parked outside the frame) — see SHAPE_LAYOUT
+     in the script. Today positions are applied instantly behind an opacity
+     cross-fade; the same table is what the shape animation will tween. */
+  #shapes, #burst {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  #shapes { transition: opacity var(--xfade) ease; }
+  .shape {
+    position: absolute;
+    display: block;
+    left: 0;
+    top: 0;
+    will-change: transform;
+  }
+
+  /* ---------- Screens ---------- */
+  .screen {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--xfade) ease, visibility 0s linear var(--xfade);
+  }
+  .screen.active {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity var(--xfade) ease, visibility 0s;
+  }
+
+  /* ---------- Typography helpers ---------- */
+  .t {
+    position: absolute;
+    white-space: pre-line;
+  }
+  .t-display { font-size: 100px; line-height: 1; letter-spacing: -2px; }
+  .t-body    { font-size: 40px;  line-height: 1.2; letter-spacing: -0.4px; }
+  .t-task    { font-size: 34px;  line-height: 1.2; letter-spacing: -0.68px; }
+  .t-note    { font-size: 34px;  line-height: 1.2; letter-spacing: -0.34px; }
+  .t-small   { font-size: 24px;  line-height: 1.2; letter-spacing: -0.24px; }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    position: absolute;
+    height: 80px;
+    padding: 0 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16.96px;
+    background: var(--white);
+    border: 2.12px solid var(--border);
+    border-radius: 8.48px;
+    box-shadow: 8px 8px 0 0 var(--orange-soft);
+    font-family: var(--font);
+    font-size: 34px;
+    line-height: 1;
+    color: #000;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .btn:active, .btn.pressed {
+    transform: translate(4px, 4px);
+    box-shadow: 4px 4px 0 0 var(--orange-soft);
+  }
+  .btn.btn-lg {
+    height: 120px;
+    padding: 0 48px;
+    gap: 18px;
+    font-size: 60px;
+  }
+  .btn.btn-lg img { width: 42px; height: 42px; display: block; }
+
+  /* ---------- Badge "3" ---------- */
+  .badge { position: absolute; width: 102.45px; height: 106.63px; }
+  .badge img { width: 100%; height: 100%; display: block; }
+  .badge span {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 41.816px;
+    letter-spacing: -0.4182px;
+    padding-bottom: 2px;
+  }
+
+  /* ---------- Progress / countdown bar ---------- */
+  #bar {
+    position: absolute;
+    left: 0;
+    top: 884px;
+    height: 24px;
+    width: 1236px;
+    background: var(--orange-soft);
+    display: none;
+  }
+  #bar.visible { display: block; }
+
+  /* ---------- Profile lock-up (top right) ---------- */
+  #profile {
+    position: absolute;
+    right: 33px;
+    top: 29px;
+    display: none;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  #profile.visible { display: flex; }
+  #profile .who {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 48px;
+  }
+  #profile .avatar { width: 36px; height: 37.2px; display: block; }
+  #profile .avatar svg { width: 100%; height: 100%; display: block; }
+  #profile .name { font-size: 40px; line-height: 1.2; letter-spacing: -0.4px; }
+  #profile .switch {
+    margin-top: 10px;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: -0.24px;
+  }
+  #profile .switch button {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* ---------- Idle / home ---------- */
+  #wordmark {
+    position: absolute;
+    left: 83px;
+    top: 414px;
+    transform: translateY(-50%);
+    width: 1406px;
+    font-size: 280px;
+    line-height: 1;
+    letter-spacing: -5.6px;
+    white-space: nowrap;
+  }
+
+  /* ---------- Login ---------- */
+  #code-input {
+    position: absolute;
+    left: 767px;
+    top: 334px;
+    width: 503px;
+    height: 220px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 64px 6px;
+  }
+  #code-digits {
+    display: flex;
+    gap: 60px;
+    font-size: 150px;
+    line-height: 160px;
+  }
+  #code-digits .digit {
+    min-width: 85px;
+    text-align: center;
+  }
+  #code-digits .digit.caret::after {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 110px;
+    background: var(--ink);
+    vertical-align: -14px;
+    animation: blink 1s steps(1, end) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  #keypad {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 710px;
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+  }
+  #keypad .btn { position: relative; }
+  #keypad .btn img { width: 30px; height: 30px; display: block; }
+
+  /* ---------- Greeting ---------- */
+  #greet-title {
+    position: absolute;
+    left: 107px;
+    top: 350px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    font-size: 100px;
+    line-height: 0.8;
+    letter-spacing: -2px;
+    white-space: nowrap;
+  }
+  #greet-title .gap-a { width: 28px; }
+  #greet-title .gap-b { width: 6px; }
+  #greet-title .avatar { width: 60px; height: 62px; display: block; }
+  #greet-title .avatar svg { width: 100%; height: 100%; display: block; }
+
+  /* ---------- Hold circle ---------- */
+  #hold-zone {
+    position: absolute;
+    left: 1336px;
+    top: 659px;
+    width: 163.02px;
+    height: 163.02px;
+    touch-action: none;
+    cursor: pointer;
+  }
+  #hold-zone svg, #hold-zone img { position: absolute; display: block; }
+  #hold-ring { inset: 0; width: 100%; height: 100%; transition: transform 0.15s ease; }
+  #hold-zone.active #hold-ring { transform: scale(1.06); }
+  #hold-label { inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #hold-label text {
+    font-family: var(--font);
+    font-size: 26px;
+    fill: #fff;
+    letter-spacing: 0.5px;
+  }
+  #hold-hand {
+    left: 50.6px;
+    top: 50.2px;
+    width: 61.3px;
+    height: 81.16px;
+    pointer-events: none;
+  }
+  /* The label fades out as the task fades in, and back as it times out. */
+  #hold-label { transition-property: opacity; transition-timing-function: ease; transition-duration: 0ms; }
+
+  /* ---------- Task screen ---------- */
+  #greet-layer, #task-layer {
+    position: absolute;
+    inset: 0;
+    transition-property: opacity;
+    transition-timing-function: ease;
+    transition-duration: 0ms;
+  }
+  #task-layer { opacity: 0; pointer-events: none; }
+
+  #painting-find { position: absolute; left: 823px; top: 223px; width: 637px; height: 516px; }
+  #painting-answer { position: absolute; left: 933px; top: 228px; width: 437px; height: 355px; }
+
+  #q-find   { position: absolute; left: 127px; top: 453px; transform: translateY(-50%); width: 626px; }
+  #q-answer { position: absolute; left: 121px; top: 433.5px; transform: translateY(-50%); width: 629px; }
+
+  #options {
+    position: absolute;
+    left: 355px;
+    top: 625px;
+    width: 821px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  #options .btn { position: relative; }
+
+  #task.find-mode #painting-answer,
+  #task.find-mode #q-answer,
+  #task.find-mode #options { display: none; }
+  #task.answer-mode #painting-find,
+  #task.answer-mode #q-find { display: none; }
+
+  /* ---------- Result: correct ---------- */
+  #burst .cshape { position: absolute; display: block; }
+
+  /* ---------- Result: wrong ---------- */
+  #painting-wrong { position: absolute; left: 754px; top: 184px; width: 587px; height: 476px; }
+  #hint-icon { position: absolute; left: 111px; top: 433px; width: 30px; height: 30px; display: block; }
+
+  /* ---------- Debug / settings ---------- */
+  #debug-toggle {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 40;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #666;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #debug-panel {
+    position: fixed;
+    top: 52px; right: 12px;
+    z-index: 40;
+    width: 300px;
+    background: #1e2126;
+    color: #eee;
+    border-radius: 12px;
+    padding: 16px;
+    font-family: -apple-system, Arial, sans-serif;
+    font-size: 13px;
+    display: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  #debug-panel.open { display: block; }
+  #debug-panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #9aa; margin: 0 0 10px;
+  }
+  #debug-panel label {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 8px; margin-bottom: 9px;
+  }
+  #debug-panel input {
+    width: 66px; padding: 4px 6px; border-radius: 6px;
+    border: 1px solid #444; background: #14161a; color: #eee; font-size: 13px;
+  }
+  #debug-note {
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;
+    color: #9aa; line-height: 1.5;
+  }
+  #debug-status {
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid #333;
+    font-family: ui-monospace, Menlo, monospace; font-size: 12px;
+    line-height: 1.6; color: #9aa; white-space: pre;
+  }
+</style>
+</head>
+<body>
+
+<div id="viewport">
+  <div id="stage">
+
+    <!-- ============ SHAPE LAYER (persistent across screens) ============ -->
+    <div id="shapes">
+      <img class="shape" data-shape="squiggle-lilac"    src="assets/v2/shape-squiggle-lilac.svg" alt="">
+      <img class="shape" data-shape="outline"           src="assets/v2/shape-outline.svg" alt="">
+      <img class="shape" data-shape="splat-pink"        src="assets/v2/shape-splat-pink.svg" alt="">
+      <img class="shape" data-shape="splat-lilac"       src="assets/v2/shape-splat-lilac.svg" alt="">
+      <img class="shape" data-shape="wave-lightblue"    src="assets/v2/shape-wave-lightblue.svg" alt="">
+      <img class="shape" data-shape="wave-blue"         src="assets/v2/shape-wave-blue.svg" alt="">
+      <img class="shape" data-shape="wave-ghost"        src="assets/v2/shape-wave-ghost.svg" alt="">
+      <img class="shape" data-shape="curl-green"        src="assets/v2/shape-curl-green.svg" alt="">
+      <img class="shape" data-shape="curlbig-green"     src="assets/v2/shape-curlbig-green.svg" alt="">
+      <img class="shape" data-shape="pebble-lightblue"  src="assets/v2/shape-pebble-lightblue.svg" alt="">
+      <img class="shape" data-shape="pebble2-lightblue" src="assets/v2/shape-pebble2-lightblue.svg" alt="">
+      <img class="shape" data-shape="bottomleft"        src="assets/v2/shape-bottomleft.svg" alt="">
+    </div>
+
+    <!-- ===================== IDLE / HOME ===================== -->
+    <div id="idle" class="screen">
+      <div class="badge" style="left:110px;top:91px"><img src="assets/v2/badge.svg" alt=""><span>3</span></div>
+      <div id="wordmark">Kunstjakten</div>
+      <div class="t t-body" style="left:111px;top:747px;transform:translateY(-50%);width:517px">Finn de skjulte detaljene! Meld deg på i vestibylen.
+Passer for barn fra 7-10 år</div>
+      <button type="button" class="btn btn-lg" id="btn-start" style="left:1202px;top:687px">Start <img src="assets/v2/icon-arrow-right.svg" alt=""></button>
+    </div>
+
+    <!-- ===================== LOGIN ===================== -->
+    <div id="login" class="screen">
+      <div class="t t-display" style="left:111px;top:347px;width:502px">Tast inn koden din</div>
+      <div id="code-input"><div id="code-digits"></div></div>
+      <div id="keypad"></div>
+    </div>
+
+    <!-- ===================== LOGIN FAILED ===================== -->
+    <div id="loginfail" class="screen">
+      <div class="t t-display" style="left:111px;top:347px;width:766px">Oops.. har du skrevet feil kode?</div>
+      <button type="button" class="btn" id="btn-retry-code" style="left:1258px;top:729px">Prøv igjen</button>
+    </div>
+
+    <!-- ===================== GREETING (logged in, resting) ===================== -->
+    <div id="hei" class="screen">
+      <div id="greet-title">
+        <span>Hei,</span><span class="gap-a"></span><span class="avatar" data-avatar></span><span class="gap-b"></span><span data-username>Kristine</span><span>!</span>
+      </div>
+      <div class="t t-body" style="left:107px;top:475px;width:505px">Trykk på den oransje sirkelen for å få oppgaven</div>
+    </div>
+
+    <!-- ===================== TASK (find / answer) ===================== -->
+    <div id="task" class="screen find-mode">
+      <div class="badge" style="left:110px;top:91px"><img src="assets/v2/badge.svg" alt=""><span>3</span></div>
+      <div id="task-layer">
+        <img id="painting-find" src="assets/v2/painting-lg.png" alt="Brudeferden i Hardanger">
+        <img id="painting-answer" src="assets/v2/painting-sm.png" alt="Brudeferden i Hardanger">
+        <div id="q-find" class="t t-task"></div>
+        <div id="q-answer" class="t t-task"></div>
+        <div id="options">
+          <button type="button" class="btn" data-answer="Han ror">Han ror</button>
+          <button type="button" class="btn" data-answer="Han fisker">Han fisker</button>
+          <button type="button" class="btn" data-answer="Han synger en lang sang">Han synger en lang sang</button>
+          <button type="button" class="btn" data-answer="Han styrer båten">Han styrer båten</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SUSPENSE / LOADER ===================== -->
+    <div id="suspense" class="screen"></div>
+
+    <!-- ===================== RESPONSE: CORRECT ===================== -->
+    <div id="correct" class="screen">
+      <div id="burst">
+        <img class="cshape" src="assets/v2/burst-pebble-lightblue.svg" style="left:902px;top:172px;width:425px;height:416.18px" alt="">
+        <img class="cshape" src="assets/v2/burst-blob-yellow.svg"      style="left:1043px;top:279px;width:173px;height:168.4px" alt="">
+        <img class="cshape" src="assets/v2/burst-star-yellow.svg"      style="left:1183px;top:523px;width:189.14px;height:184.42px" alt="">
+        <img class="cshape" src="assets/v2/burst-star-green.svg"       style="left:788px;top:180px;width:342px;height:334px" alt="">
+        <img class="cshape" src="assets/v2/burst-cloud.png"            style="left:837px;top:318px;width:400.38px;height:324.33px" alt="">
+        <img class="cshape" src="assets/v2/burst-star-blue.svg"        style="left:820px;top:511px;width:189.14px;height:184.42px" alt="">
+      </div>
+      <div class="t t-display" style="left:111px;top:231px;width:760px">Herlig,</div>
+      <span class="avatar" data-avatar style="position:absolute;left:111px;top:354px;width:60px;height:62px"></span>
+      <div class="t t-display" style="left:195px;top:325px;white-space:nowrap" data-username>Kristine</div>
+      <div class="t t-note" style="left:111px;top:480px;width:458px">Det henger en gul sokk i treet. Godt sett!</div>
+      <div class="t t-small" style="left:111px;top:599px;white-space:nowrap">Du har nå klart 3 av 6 oppgaver!</div>
+      <button type="button" class="btn" id="btn-ferdig" style="left:1312px;top:729px">Ferdig</button>
+    </div>
+
+    <!-- ===================== RESPONSE: WRONG ===================== -->
+    <div id="wrong" class="screen">
+      <img id="painting-wrong" src="assets/v2/painting-md.png" alt="Brudeferden i Hardanger">
+      <div class="t t-display" style="left:111px;top:272px;width:481px;line-height:0.8">Ai, nesten..</div>
+      <img id="hint-icon" src="assets/v2/icon-arrow-hint.svg" alt="">
+      <div class="t t-note" style="left:162px;top:422px;width:317px">Hint: Det henger en gul sokk i treet.</div>
+      <div class="t t-note" style="left:111px;top:548px;width:487px">Prøv igjen!</div>
+      <button type="button" class="btn" id="btn-again" style="left:1096px;top:705px">Se oppgaven på nytt</button>
+    </div>
+
+    <!-- ============ PERSISTENT CHROME (above screens) ============ -->
+    <div id="hold-zone">
+      <svg id="hold-ring" viewBox="0 0 163.02 163.02" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="81.51" cy="81.51" r="80.51" fill="#F39327" stroke="#1E1E1D" stroke-width="2"/>
+      </svg>
+      <svg id="hold-label" viewBox="0 0 163.02 163.02" xmlns="http://www.w3.org/2000/svg">
+        <path id="hold-arc" fill="none" d="M 21.5,81.5 A 60,60 0 0 1 141.5,81.5"/>
+        <text><textPath href="#hold-arc" startOffset="10%">Hold</textPath></text>
+      </svg>
+      <img id="hold-hand" src="assets/v2/hold-hand.svg" alt="">
+    </div>
+
+    <div id="profile">
+      <div class="who">
+        <span class="avatar" data-avatar></span>
+        <span class="name" data-username>Kristine</span>
+      </div>
+      <div class="switch">Er det ikke deg? <button type="button" id="btn-switch-user">Bytt bruker</button></div>
+    </div>
+
+    <div id="bar"></div>
+
+  </div>
+</div>
+
+<!-- ===================== DEBUG / SETTINGS ===================== -->
+<button id="debug-toggle" title="Innstillinger">⚙</button>
+<div id="debug-panel">
+  <h2>Timeout-mekanikk</h2>
+  <label>Inaktivitet før nedtelling (s)<input type="number" id="cfg-init-wait" value="10" min="0" step="1"></label>
+  <label>Fade inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
+  <label>Ventetid før nedtoning (s)<input type="number" id="cfg-grace" value="1" min="0" step="1"></label>
+  <label>Nedtoning, varighet (s)<input type="number" id="cfg-fadeout" value="7" min="1" step="1"></label>
+  <label>Spenning / loader (ms)<input type="number" id="cfg-suspense" value="1600" min="0" step="100"></label>
+  <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="8" min="1" step="1"></label>
+  <label>Utlogging ved inaktivitet (s)<input type="number" id="cfg-logout" value="60" min="5" step="5"></label>
+  <div id="debug-note">Gyldige koder: <b>323</b> (Kristine), <b>118</b> (Jonas), <b>764</b> (Amina), <b>905</b> (Theo). Alt annet gir feilskjermen.</div>
+  <div id="debug-status"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =========================================================================
+     SHAPE LAYOUT
+     Every screen gives every shape a position: [x, y, width, height].
+     Shapes not listed for a screen fall back to PARK — a defined position
+     outside the 1600x900 frame. This is the table the shape animation will
+     tween between; today it is applied instantly behind the screen cross-fade.
+     ========================================================================= */
+  const PARK = {
+    "squiggle-lilac":    [-760, 167, 629, 537],
+    "outline":           [855, -620, 304.08, 295.99],
+    "splat-pink":        [507, -480, 370.33, 385.64],
+    "splat-lilac":       [467, 1010, 370.33, 385.64],
+    "wave-lightblue":    [305, -520, 438.45, 374.35],
+    "wave-blue":         [819, 1010, 438.45, 374.35],
+    "wave-ghost":        [338, 970, 438.45, 374.35],
+    "curl-green":        [1720, 322, 435.94, 361.93],
+    "curlbig-green":     [-620, 711, 537, 446.83],
+    "pebble-lightblue":  [1720, 202, 267.89, 262.33],
+    "pebble2-lightblue": [1720, 323, 298.9, 292.79],
+    "bottomleft":        [-140, 1002.88, 334.18, 348.15]
+  };
+
+  const SHAPE_LAYOUT = {
+    idle: {
+      "squiggle-lilac":   [-182, 167, 629, 537],
+      "splat-pink":       [507, -150, 370.33, 385.64],
+      "curl-green":       [981, -138, 435.94, 361.93],
+      "wave-blue":        [819, 687, 438.45, 374.35],
+      "outline":          [855, -235, 304.08, 295.99],
+      "pebble-lightblue": [1221, 202, 267.89, 262.33],
+      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+    },
+    login: {
+      "wave-lightblue":   [305, -155, 438.45, 374.35],
+      "splat-pink":       [191, -155, 370.33, 385.64],
+      "curl-green":       [1382, 322, 435.94, 361.93],
+      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+    },
+    loginfail: {
+      "wave-lightblue":   [305, -155, 438.45, 374.35],
+      "splat-pink":       [191, -155, 370.33, 385.64],
+      "curl-green":       [1382, 322, 435.94, 361.93],
+      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+    },
+    hei: {
+      "splat-lilac":      [467, 716, 370.33, 385.64],
+      "curl-green":       [838, -161, 435.94, 361.93],
+      "wave-blue":        [694, 661, 438.45, 374.35],
+      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+    },
+    taskfind: {
+      "splat-lilac":      [1142, 207, 370.33, 385.64],
+      "curlbig-green":    [0, 711, 537, 446.83],
+      "wave-ghost":       [338, 970, 438.45, 374.35],
+      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+    },
+    taskanswer: {
+      "pebble2-lightblue":[1095, 323, 298.9, 292.79],
+      "splat-pink":       [283, -244, 370.33, 385.64],
+      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+    },
+    suspense: {
+      "squiggle-lilac":   [601, 280, 397, 339],
+      "wave-ghost":       [338, 970, 438.45, 374.35],
+      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+    },
+    correct: {
+      "splat-lilac":      [1142, 98, 370.33, 385.64],
+      "wave-ghost":       [338, 970, 438.45, 374.35],
+      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+    },
+    wrong: {
+      "wave-ghost":       [338, 970, 438.45, 374.35],
+      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+    }
+  };
+
+  /* =========================================================================
+     AVATARS
+     One shape from the visual toolbox + one colour from the palette, picked by
+     hashing the user's code so the same person always gets the same avatar.
+     The paths are inlined (rather than loaded as files) so the fill can vary:
+     blomst = assets/v2/avatar-lg.svg, the rest = the shape-*.svg exports.
+     ========================================================================= */
+  const AVATAR_SHAPES = {
+    blomst: { vb: "0 0 60 62", d: "M35.3375 3.96061L36.1497 6.69298C36.5643 8.08942 38.2619 8.63639 39.4252 7.74818L41.7008 6.01049C46.0981 2.65129 52.1978 7.04875 50.3369 12.2376L49.3736 14.9216C48.8834 16.2938 49.9321 17.7266 51.3979 17.6854L54.2685 17.608C59.8146 17.4555 62.1438 24.5708 57.5684 27.6831L55.2002 29.2926C53.9905 30.1154 53.9905 31.887 55.2002 32.7098L57.5684 34.3193C62.1463 37.4316 59.817 44.5469 54.2685 44.3944L51.3979 44.3146C49.9321 44.2734 48.8834 45.7086 49.3736 47.0784L50.3369 49.7624C52.1978 54.9488 46.0981 59.3463 41.7008 55.9895L39.4252 54.2518C38.2619 53.3636 36.5643 53.913 36.1497 55.307L35.3375 58.0394C33.7693 63.3202 26.2306 63.3202 24.6624 58.0394L23.8503 55.307C23.4357 53.9106 21.7381 53.3636 20.5748 54.2518L18.2992 55.9895C13.9019 59.3487 7.80207 54.9512 9.66297 49.7624L10.6264 47.0784C11.1191 45.7062 10.0679 44.2734 8.60214 44.3146L5.73152 44.3944C0.185405 44.5469 -2.14383 37.4316 2.43159 34.3193L4.79977 32.7098C6.00948 31.887 6.00948 30.1154 4.79977 29.2926L2.43159 27.6831C-2.14627 24.5708 0.182966 17.4555 5.73152 17.608L8.60214 17.6854C10.0679 17.7266 11.1166 16.2938 10.6264 14.9216L9.66297 12.2376C7.80207 7.05117 13.9019 2.65129 18.2992 6.01049L20.5748 7.74818C21.7357 8.63639 23.4357 8.08942 23.8503 6.69298L24.6624 3.96061C26.2306 -1.3202 33.7693 -1.3202 35.3375 3.96061Z" },
+    klatt: { vb: "0 0 371.33 386.637", d: "M218.609 25.1348L223.622 42.13C226.181 50.8158 236.658 54.2179 243.839 48.6933L257.883 37.8849C285.025 16.9909 322.673 44.3428 311.187 76.6194L305.24 93.3178C302.214 101.807 308.687 110.72 317.735 110.464L335.451 109.982C369.685 109.033 384.06 153.297 355.822 172.658L341.204 182.67C333.737 187.788 333.737 198.808 341.204 203.926L355.822 213.938C384.079 233.299 369.704 277.563 335.451 276.614L317.735 276.118C308.687 275.862 302.214 284.789 305.24 293.312L311.187 310.01C322.673 342.273 285.025 369.625 257.883 348.744L243.839 337.936C236.658 332.411 226.181 335.827 223.622 344.5L218.609 361.495C208.929 394.34 162.408 394.34 152.729 361.495L147.715 344.5C145.156 335.813 134.679 332.411 127.498 337.936L113.454 348.744C86.3123 369.638 48.664 342.287 60.1501 310.01L66.0971 293.312C69.1382 284.822 62.6512 275.862 53.6031 276.118L35.887 276.614C1.65239 277.563 -12.7221 233.299 15.5152 213.938L30.1334 203.926C37.6003 198.808 37.6003 187.788 30.1334 182.67L15.5152 172.658C-12.7415 153.297 1.63297 109.033 35.887 109.982L53.6031 110.464C62.6512 110.72 69.1382 101.807 66.0971 93.3178L60.1501 76.6194C48.664 44.3563 86.3123 17.0043 113.454 37.8849L127.498 48.6933C134.665 54.2179 145.156 50.8158 147.715 42.13L152.729 25.1348C162.408 -7.71018 208.929 -7.71018 218.609 25.1348Z" },
+    krull: { vb: "0 0 436.941 362.931", d: "M369.879 41.5597C350.114 56.4776 331.403 57.8625 309.245 46.0306C288.305 34.861 273.764 16.6465 273.613 16.4658L273.763 16.6465H273.749C268.844 10.4783 262.674 6.62445 258.943 4.86341C243.822 -2.2646 226.032 0.888982 214.245 12.6597C206.269 20.6238 202.311 31.5677 202.913 42.7071C203.339 50.5507 206.284 58.335 211.732 64.7742L264.181 127.014C265.145 128.058 265.762 129.463 265.762 131.014C265.762 134.278 263.109 136.928 259.84 136.928C258.877 136.928 257.973 136.702 257.174 136.296L196.775 108.798C184.16 103.079 169.243 105.907 159.588 116.596C147.981 129.463 149.021 149.287 161.906 160.878C161.906 160.878 161.921 160.893 161.936 160.908C208.744 200.938 220.997 231.501 220.997 247.985C220.997 251.026 220.575 253.593 219.883 255.63C218.152 260.653 214.566 263.279 209.194 263.415C198.612 263.716 182.098 253.833 170.311 225.077C163.554 208.578 144.601 200.28 128.372 207.077C112.144 213.874 104.318 232.916 111.06 249.475C121.325 274.641 135.605 294.44 152.155 309.267C168.855 324.245 187.777 334.023 207.196 338.885C226.559 343.837 246.293 343.837 264.548 339.532C282.834 335.363 299.699 327.128 313.588 315.328C328.283 302.807 339.483 286.548 346.194 267.916C352.696 249.86 355.245 229.78 352.63 208.412C365.28 208.984 377.955 207.223 390.003 203.24C407.006 197.612 417.322 179.036 411.678 161.404C406.034 143.772 387.323 133.68 370.169 139.157C359.362 142.612 348.856 141.945 339.517 138.174C333.828 135.879 328.531 132.409 323.958 128.014L272.408 66.6864C283.696 65.9776 294.833 63.5316 305.399 59.5182C319.288 54.2544 332.129 46.5462 343.161 36.1391C356.05 23.9832 356.802 3.66872 344.834 -9.42172C332.867 -22.5122 312.732 -23.4468 299.844 -11.291C288.812 -0.884025 275.971 6.82415 262.082 12.088L369.879 41.5597Z" },
+    stjerne: { vb: "0 0 191.148 186.42", d: "M75.0783 50.2586L80.5682 6.56857C81.329 0.487236 89.3997 -1.09658 92.3981 4.2526L118.534 50.931C119.876 53.3366 122.606 54.5917 125.306 54.0538L176.041 43.9455C182.058 42.7469 186.396 49.8138 182.427 54.4966L149.176 93.7325C147.395 95.8348 147.221 98.8681 148.749 101.16L177.315 144.006C180.71 149.099 176.256 155.741 170.269 154.549L119.877 144.508C117.181 143.971 114.454 145.222 113.111 147.623L88.3159 191.945C85.3325 197.28 77.2733 195.72 76.4942 189.652L70.9209 146.24C70.5679 143.491 68.4477 141.305 65.7075 140.867L20.1806 133.594C14.1049 132.623 12.4283 124.579 17.7106 121.542L60.2967 97.0559C62.6912 95.6789 63.9169 92.9083 63.3172 90.2158L52.3487 41.0703C51.0247 35.1367 58.0264 30.9245 62.6416 34.8917L75.0783 50.2586Z" },
+    stein: { vb: "0 0 268.889 263.326", d: "M265.611 88.4917L265.445 88.0703C256.85 66.4085 231.53 56.7743 210.711 67.2665L178.226 83.6295C174.613 85.451 170.353 82.8167 170.383 78.7677L170.657 41.0977C170.833 17.5747 149.727 -0.407715 126.594 3.85254C112.207 6.50293 100.869 17.7275 98.0342 32.084L90.2734 71.4238C89.4463 75.6172 84.5273 77.5127 81.0967 74.9639L54.2695 55.0332C34.9707 40.6934 7.44531 51.5645 3.05664 75.1445C0.328125 89.8027 6.87891 104.616 19.5723 112.442L54.6191 134.055C58.207 136.268 58.5254 141.383 55.2412 144.028L26.8506 166.898C8.05469 182.037 10.1719 211.334 30.9424 223.598C43.8564 231.221 60.1729 229.887 71.6787 220.281L101.83 195.109C105.006 192.457 109.85 194.033 110.867 198.045L120.541 236.191C126.564 259.936 155.988 268.238 173.529 251.107C183.436 241.434 186.316 226.658 180.752 213.994L165.201 178.6C163.529 174.795 166.803 170.75 170.883 171.541L208.807 178.891C232.502 183.484 253.301 163.482 249.51 139.66C247.148 124.816 235.475 113.199 220.617 110.918L182.643 105.09C178.559 104.463 176.797 99.6035 179.484 96.4785L265.611 88.4917Z" }
+  };
+  // Order matters: it decides which combination each code lands on. This one is
+  // tuned so code 323 (Kristine) gets the lilac flower drawn in the Figma file.
+  const AVATAR_SHAPE_KEYS = ["klatt", "krull", "stjerne", "blomst", "stein"];
+  const AVATAR_COLORS = ["#209BD3", "#E13082", "#DEAFD2", "#B3D181", "#217B39", "#FFE700", "#F39327", "#ADDBE9"];
+
+  function hashCode(str) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 16777619) >>> 0;
+    }
+    return h;
+  }
+  function avatarFor(code) {
+    const h = hashCode("kunstjakt:" + code);
+    return {
+      shape: AVATAR_SHAPES[AVATAR_SHAPE_KEYS[h % AVATAR_SHAPE_KEYS.length]],
+      color: AVATAR_COLORS[(h >>> 11) % AVATAR_COLORS.length]
+    };
+  }
+  function avatarMarkup(a) {
+    return '<svg viewBox="' + a.shape.vb + '" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">' +
+           '<path d="' + a.shape.d + '" fill="' + a.color + '"/></svg>';
+  }
+
+  /* ---- Users. Any other code lands on the "feil kode" screen. ---- */
+  const USERS = { "323": "Kristine", "118": "Jonas", "764": "Amina", "905": "Theo" };
+
+  /* ---- Task copy ---- */
+  const CORRECT_ANSWER = "Han ror";
+  const QUESTION_FIND =
+    "Finn maleriet “Brudeferden i Hardanger” av Adolf Tiedemann og Hans Gude fra 1848.\n\n" +
+    "På maleriet Brudeferden i hardanger, hva gjør personen foran?\n\n" +
+    "Du finner svaret i dette rommet, kom tilbake når du har det!";
+  const QUESTION_ANSWER =
+    "Finn maleriet “Brudeferden i Hardanger” av Adolf Tiedemann og Hans Gude fra 1848.\n\n" +
+    "På maleriet Brudeferden i hardanger, hva gjør personen foran?";
+
+  /* ---- Config ---- */
+  let INIT_WAIT_MS = 10000;
+  let FADE_IN_MS = 400;
+  let GRACE_MS = 1000;
+  let FADE_OUT_MS = 7000;
+  let SUSPENSE_MS = 1600;
+  let RESULT_DISPLAY_MS = 8000;
+  let LOGOUT_MS = 60000;
+
+  /* ---- Elements ---- */
+  const stage = document.getElementById("stage");
+  const shapeLayer = document.getElementById("shapes");
+  const shapeEls = {};
+  Array.prototype.forEach.call(document.querySelectorAll(".shape"), function (el) {
+    shapeEls[el.dataset.shape] = el;
+  });
+
+  const screens = {};
+  ["idle", "login", "loginfail", "hei", "task", "suspense", "correct", "wrong"].forEach(function (id) {
+    screens[id] = document.getElementById(id);
+  });
+
+  const taskScreen = screens.task;
+  const taskLayer = document.getElementById("task-layer");
+  const qFind = document.getElementById("q-find");
+  const qAnswer = document.getElementById("q-answer");
+  const options = document.getElementById("options");
+  const optionButtons = Array.prototype.slice.call(options.querySelectorAll(".btn"));
+
+  const holdZone = document.getElementById("hold-zone");
+  const holdLabel = document.getElementById("hold-label");
+  const profile = document.getElementById("profile");
+  const bar = document.getElementById("bar");
+  const codeDigits = document.getElementById("code-digits");
+  const keypad = document.getElementById("keypad");
+
+  const debugToggle = document.getElementById("debug-toggle");
+  const debugPanel = document.getElementById("debug-panel");
+  const cfgInitWait = document.getElementById("cfg-init-wait");
+  const cfgFadeIn = document.getElementById("cfg-fade-in");
+  const cfgGrace = document.getElementById("cfg-grace");
+  const cfgFadeout = document.getElementById("cfg-fadeout");
+  const cfgSuspense = document.getElementById("cfg-suspense");
+  const cfgResult = document.getElementById("cfg-result");
+  const cfgLogout = document.getElementById("cfg-logout");
+  const debugStatus = document.getElementById("debug-status");
+
+  /* ---- State ---- */
+  let current = null;
+  let code = "";
+  let user = null;          // { code, name, avatar }
+  let visits = 0;           // task visits; odd = find, even = answer
+  let isAnswerMode = false;
+  let holding = false;
+  let idleTimer = null, idleEndsAt = null;
+  let graceTimer = null, graceEndsAt = null;
+  let fadeOutTimer = null, fadeOutEndsAt = null;
+  let resultTimer = null, suspenseTimer = null, logoutTimer = null, logoutEndsAt = null;
+  let barRaf = null, barStartedAt = null, barTotalMs = 0;
+  let statusTicker = null;
+
+  /* ---- Responsive scale (artboard is 1600x900) ---- */
+  const STAGE_W = 1600, STAGE_H = 900;
+  function fitStage() {
+    const vv = window.visualViewport;
+    const w = Math.max(vv ? vv.width : 0, window.innerWidth || 0, document.documentElement.clientWidth || 0);
+    const h = Math.max(vv ? vv.height : 0, window.innerHeight || 0, document.documentElement.clientHeight || 0);
+    if (!w || !h) return;
+    stage.style.setProperty("--s", Math.min(w / STAGE_W, h / STAGE_H));
+  }
+  window.addEventListener("resize", fitStage);
+  window.addEventListener("orientationchange", fitStage);
+  window.addEventListener("load", fitStage);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", fitStage);
+    window.visualViewport.addEventListener("scroll", fitStage);
+  }
+  fitStage();
+
+  /* ================= Config ================= */
+  function readConfig() {
+    INIT_WAIT_MS = Math.max(0, Number(cfgInitWait.value) || 0) * 1000;
+    FADE_IN_MS = Math.max(0, Number(cfgFadeIn.value) || 0);
+    GRACE_MS = Math.max(0, Number(cfgGrace.value) || 0) * 1000;
+    FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1) * 1000;
+    SUSPENSE_MS = Math.max(0, Number(cfgSuspense.value) || 0);
+    RESULT_DISPLAY_MS = Math.max(1, Number(cfgResult.value) || 1) * 1000;
+    LOGOUT_MS = Math.max(5, Number(cfgLogout.value) || 5) * 1000;
+  }
+  [cfgInitWait, cfgFadeIn, cfgGrace, cfgFadeout, cfgSuspense, cfgResult, cfgLogout]
+    .forEach(function (i) { i.addEventListener("change", readConfig); });
+  debugToggle.addEventListener("click", function () { debugPanel.classList.toggle("open"); });
+
+  /* ================= Shape placement ================= */
+  function placeShapes(layoutKey) {
+    const layout = SHAPE_LAYOUT[layoutKey] || {};
+    Object.keys(shapeEls).forEach(function (name) {
+      const p = layout[name] || PARK[name];
+      const el = shapeEls[name];
+      el.style.width = p[2] + "px";
+      el.style.height = p[3] + "px";
+      el.style.transform = "translate(" + p[0] + "px," + p[1] + "px)";
+    });
+  }
+
+  /* ================= Screen switching ================= */
+  // Which chrome each screen carries. `shapes` names the SHAPE_LAYOUT entry.
+  const CHROME = {
+    idle:      { shapes: "idle",       bar: false, profile: false, hold: false },
+    login:     { shapes: "login",      bar: true,  profile: false, hold: false },
+    loginfail: { shapes: "loginfail",  bar: true,  profile: false, hold: false },
+    hei:       { shapes: "hei",        bar: true,  profile: true,  hold: true },
+    task:      { shapes: "taskfind",   bar: true,  profile: true,  hold: true },
+    suspense:  { shapes: "suspense",   bar: false, profile: false, hold: false },
+    correct:   { shapes: "correct",    bar: true,  profile: false, hold: false },
+    wrong:     { shapes: "wrong",      bar: true,  profile: true,  hold: false }
+  };
+
+  function showScreen(id, shapeKeyOverride) {
+    const chrome = CHROME[id];
+    if (current && current !== id) shapeLayer.style.opacity = "0";
+
+    window.setTimeout(function () {
+      placeShapes(shapeKeyOverride || chrome.shapes);
+      shapeLayer.style.opacity = "1";
+    }, current && current !== id ? 200 : 0);
+
+    Object.keys(screens).forEach(function (k) {
+      screens[k].classList.toggle("active", k === id);
+    });
+    profile.classList.toggle("visible", !!chrome.profile && !!user);
+    holdZone.style.display = chrome.hold ? "block" : "none";
+    if (!chrome.bar) hideBar();
+    current = id;
+  }
+
+  /* ================= Profile / avatar ================= */
+  function setUser(codeStr) {
+    user = { code: codeStr, name: USERS[codeStr], avatar: avatarFor(codeStr) };
+    const markup = avatarMarkup(user.avatar);
+    Array.prototype.forEach.call(document.querySelectorAll("[data-avatar]"), function (el) {
+      el.innerHTML = markup;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-username]"), function (el) {
+      el.textContent = user.name;
+    });
+  }
+
+  document.getElementById("btn-switch-user").addEventListener("click", logout);
+
+  function logout() {
+    clearAllTimers();
+    stopStatusTicker();
+    hideBar();
+    user = null;
+    visits = 0;
+    resetCode();
+    showScreen("idle");
+  }
+
+  /* ================= Idle / home ================= */
+  document.getElementById("btn-start").addEventListener("click", function () {
+    resetCode();
+    showScreen("login");
+    armLogout();
+  });
+
+  /* ================= Login ================= */
+  const KEYS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "back"];
+  KEYS.forEach(function (key) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn";
+    if (key === "back") {
+      b.innerHTML = '<img src="assets/v2/icon-backspace.svg" alt="Slett">';
+    } else {
+      b.textContent = key;
+    }
+    b.addEventListener("click", function () { onKey(key); });
+    keypad.appendChild(b);
+  });
+
+  function resetCode() {
+    code = "";
+    renderCode();
+  }
+  function renderCode() {
+    let html = "";
+    for (let i = 0; i < 3; i++) {
+      const cls = "digit" + (i === code.length ? " caret" : "");
+      html += '<span class="' + cls + '">' + (code[i] || "") + "</span>";
+    }
+    codeDigits.innerHTML = html;
+  }
+  function onKey(key) {
+    armLogout();
+    if (key === "back") {
+      code = code.slice(0, -1);
+      renderCode();
+      return;
+    }
+    if (code.length >= 3) return;
+    code += key;
+    renderCode();
+    if (code.length === 3) {
+      // Small beat so the third digit is visible before the screen changes.
+      window.setTimeout(submitCode, 450);
+    }
+  }
+  function submitCode() {
+    if (code.length !== 3) return;
+    if (USERS[code]) {
+      setUser(code);
+      enterGreeting();
+    } else {
+      showScreen("loginfail");
+      armLogout();
+    }
+  }
+  document.getElementById("btn-retry-code").addEventListener("click", function () {
+    resetCode();
+    showScreen("login");
+    armLogout();
+  });
+
+  /* ================= Greeting (logged in, resting) ================= */
+  function enterGreeting() {
+    clearAllTimers();
+    holding = false;
+    holdZone.classList.remove("active");
+    taskLayer.style.transitionDuration = "0ms";
+    taskLayer.style.opacity = "0";
+    taskLayer.style.pointerEvents = "none";
+    setHoldLabel(1, 0);
+    showScreen("hei");
+    armLogout();
+    startStatusTicker();
+  }
+
+  /* ================= Hold to reveal the task ================= */
+  function setHoldLabel(opacity, ms) {
+    holdLabel.style.transitionDuration = ms + "ms";
+    holdLabel.style.opacity = String(opacity);
+  }
+
+  function onHoldStart(e) {
+    if (e) e.preventDefault();
+    if (!user) return;
+    if (current !== "hei" && current !== "task") return;
+    clearAllTimers();
+    readConfig();
+    holding = true;
+    holdZone.classList.add("active");
+    hideBar(); // nothing is counting down while the finger is on the circle
+
+    if (current !== "task") {
+      visits += 1;
+      isAnswerMode = (visits % 2 === 0); // 1st visit: find it; 2nd: answer it
+      taskScreen.classList.toggle("answer-mode", isAnswerMode);
+      taskScreen.classList.toggle("find-mode", !isAnswerMode);
+      qFind.textContent = QUESTION_FIND;
+      qAnswer.textContent = QUESTION_ANSWER;
+      showScreen("task", isAnswerMode ? "taskanswer" : "taskfind");
+    }
+    taskLayer.style.transitionDuration = FADE_IN_MS + "ms";
+    taskLayer.style.opacity = "1";
+    taskLayer.style.pointerEvents = "auto";
+    setHoldLabel(0, FADE_IN_MS);
+  }
+
+  function onHoldEnd() {
+    if (!holding) return;
+    holding = false;
+    holdZone.classList.remove("active");
+    clearAllTimers();
+    readConfig();
+    graceEndsAt = Date.now() + GRACE_MS;
+    graceTimer = window.setTimeout(startFadeOut, GRACE_MS);
+    startBar(GRACE_MS + FADE_OUT_MS);
+  }
+
+  function startFadeOut() {
+    readConfig();
+    taskLayer.style.transitionDuration = FADE_OUT_MS + "ms";
+    taskLayer.style.opacity = "0";
+    setHoldLabel(1, FADE_OUT_MS);
+    fadeOutEndsAt = Date.now() + FADE_OUT_MS;
+    fadeOutTimer = window.setTimeout(enterGreeting, FADE_OUT_MS);
+  }
+
+  holdZone.addEventListener("pointerdown", onHoldStart);
+  holdZone.addEventListener("pointerup", onHoldEnd);
+  holdZone.addEventListener("pointercancel", onHoldEnd);
+  holdZone.addEventListener("pointerleave", onHoldEnd);
+
+  /* ================= Answering ================= */
+  optionButtons.forEach(function (button) {
+    button.addEventListener("pointerdown", function (e) { e.preventDefault(); button.classList.add("pressed"); });
+    const release = function () { button.classList.remove("pressed"); };
+    button.addEventListener("pointercancel", release);
+    button.addEventListener("pointerleave", release);
+    button.addEventListener("pointerup", function (e) {
+      e.preventDefault();
+      release();
+      if (!isAnswerMode) return;
+      if (Number(getComputedStyle(taskLayer).opacity) < 0.5) return;
+      selectAnswer(button.dataset.answer);
+    });
+  });
+
+  function selectAnswer(answer) {
+    clearAllTimers();
+    hideBar();
+    holding = false;
+    holdZone.classList.remove("active");
+    readConfig();
+
+    // Suspense frame while we "check" the answer.
+    showScreen("suspense");
+    suspenseTimer = window.setTimeout(function () {
+      suspenseTimer = null;
+      showResult(answer === CORRECT_ANSWER);
+    }, SUSPENSE_MS);
+  }
+
+  function showResult(isCorrect) {
+    readConfig();
+    showScreen(isCorrect ? "correct" : "wrong");
+    resultTimer = window.setTimeout(isCorrect ? logout : backToTask, RESULT_DISPLAY_MS);
+    startBar(RESULT_DISPLAY_MS);
+  }
+
+  document.getElementById("btn-ferdig").addEventListener("click", logout);
+  document.getElementById("btn-again").addEventListener("click", backToTask);
+
+  function backToTask() {
+    clearAllTimers();
+    // Back into the task, still in answer mode, content already visible.
+    isAnswerMode = true;
+    taskScreen.classList.add("answer-mode");
+    taskScreen.classList.remove("find-mode");
+    taskLayer.style.transitionDuration = "0ms";
+    taskLayer.style.opacity = "1";
+    taskLayer.style.pointerEvents = "auto";
+    setHoldLabel(0, 0);
+    showScreen("task", "taskanswer");
+    readConfig();
+    startBar(GRACE_MS + FADE_OUT_MS);
+    graceEndsAt = Date.now() + GRACE_MS;
+    graceTimer = window.setTimeout(startFadeOut, GRACE_MS);
+  }
+
+  /* ================= Timers ================= */
+  function clearAllTimers() {
+    [idleTimer, graceTimer, fadeOutTimer, resultTimer, suspenseTimer].forEach(function (t) {
+      if (t) window.clearTimeout(t);
+    });
+    idleTimer = graceTimer = fadeOutTimer = resultTimer = suspenseTimer = null;
+    idleEndsAt = graceEndsAt = fadeOutEndsAt = null;
+    clearLogout();
+  }
+  // Inactivity logout. The bar visualises whatever countdown currently owns the
+  // screen, so re-arming the timer restarts it too.
+  function armLogout() {
+    clearLogout();
+    readConfig();
+    logoutEndsAt = Date.now() + LOGOUT_MS;
+    logoutTimer = window.setTimeout(logout, LOGOUT_MS);
+    if (CHROME[current] && CHROME[current].bar) startBar(LOGOUT_MS);
+  }
+  function clearLogout() {
+    if (logoutTimer) { window.clearTimeout(logoutTimer); logoutTimer = null; }
+    logoutEndsAt = null;
+  }
+
+  /* ================= Progress bar ================= */
+  function startBar(totalMs) {
+    cancelBar();
+    barTotalMs = totalMs;
+    barStartedAt = Date.now();
+    bar.classList.add("visible");
+    tickBar();
+  }
+  function tickBar() {
+    const elapsed = Date.now() - barStartedAt;
+    const frac = barTotalMs > 0 ? Math.min(1, elapsed / barTotalMs) : 1;
+    bar.style.width = (1600 * (1 - frac)) + "px";
+    if (frac < 1) barRaf = requestAnimationFrame(tickBar);
+  }
+  function cancelBar() {
+    if (barRaf) { cancelAnimationFrame(barRaf); barRaf = null; }
+    barStartedAt = null;
+  }
+  function hideBar() {
+    cancelBar();
+    bar.classList.remove("visible");
+    bar.style.width = "1236px";
+  }
+
+  /* ================= Debug status ================= */
+  function startStatusTicker() { stopStatusTicker(); statusTicker = window.setInterval(updateStatus, 100); updateStatus(); }
+  function stopStatusTicker() { if (statusTicker) { window.clearInterval(statusTicker); statusTicker = null; } debugStatus.textContent = ""; }
+  function updateStatus() {
+    const now = Date.now();
+    let state, detail;
+    if (holding) { state = "HOLDER"; detail = "oppgaven er synlig"; }
+    else if (fadeOutEndsAt) { state = "TONER NED"; detail = Math.max(0, (fadeOutEndsAt - now) / 1000).toFixed(1) + "s til hvileskjerm"; }
+    else if (graceEndsAt) { state = "VENTER"; detail = Math.max(0, (graceEndsAt - now) / 1000).toFixed(1) + "s til nedtoning"; }
+    else if (logoutEndsAt) { state = "INAKTIV"; detail = Math.max(0, (logoutEndsAt - now) / 1000).toFixed(1) + "s til utlogging"; }
+    else { state = "IDLE"; detail = "-"; }
+    debugStatus.textContent =
+      "Skjerm: " + current + "\nStatus: " + state + "\n" + detail +
+      "\nmodus: " + (isAnswerMode ? "svar" : "finn") +
+      "\nbruker: " + (user ? user.name + " (" + user.code + ")" : "-");
+  }
+
+  /* ================= Boot ================= */
+  resetCode();
+  showScreen("idle");
+})();
+</script>
+</body>
+</html>
