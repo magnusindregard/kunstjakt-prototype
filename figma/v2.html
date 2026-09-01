@@ -85,8 +85,8 @@
     --move-dur: 900ms;                          /* screen-to-screen travel */
     --move-ease: cubic-bezier(0.45, 0, 0.25, 1);
     --bob-dist: 5px;                            /* vertical drift, each way */
-    --pulse-min: 0.95;                          /* size pulse, 5% either way */
-    --pulse-max: 1.05;
+    --pulse-min: 0.96;                          /* size pulse, 4% either way */
+    --pulse-max: 1.04;
   }
   #shapes, #burst {
     position: absolute;
@@ -111,7 +111,7 @@
     animation: shapeBob var(--bob-dur, 7300ms) ease-in-out var(--bob-delay, 0ms) infinite;
   }
   .shape .pulse {
-    animation: shapePulse var(--pulse-dur, 5200ms) ease-in-out var(--pulse-delay, 0ms) infinite;
+    animation: shapePulse var(--pulse-dur, 6200ms) ease-in-out var(--pulse-delay, 0ms) infinite;
   }
   @keyframes shapeBob {
     0%, 100% { transform: translateY(calc(var(--bob-dist) * -1)); }
@@ -838,7 +838,7 @@ Passer for barn fra 7-10 år</div>
       // Different periods for bob and pulse, and a different pair per shape, so
       // nothing beats in unison. Negative delays start each one mid-cycle.
       el.style.setProperty("--bob-dur", (7300 + i * 430) + "ms");
-      el.style.setProperty("--pulse-dur", (5200 + i * 310) + "ms");
+      el.style.setProperty("--pulse-dur", (6200 + i * 310) + "ms");
       el.style.setProperty("--bob-delay", (-i * 620) + "ms");
       el.style.setProperty("--pulse-delay", (-i * 470) + "ms");
       i++;
