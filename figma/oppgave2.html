@@ -983,6 +983,12 @@ Passer for barn fra 7-10 år</div>
   // down. DRIFT_MAX is how far along that journey they get by the time the
   // countdown expires; the screen change to idle then carries them the rest.
   const DRIFT_MAX = 0.5;
+  const MOVE_MS = (function () {
+    const v = getComputedStyle(document.documentElement).getPropertyValue("--move-dur").trim();
+    if (/ms$/.test(v)) return parseFloat(v);
+    if (/s$/.test(v)) return parseFloat(v) * 1000;
+    return 900;
+  })();
   let currentShapeKey = "idle";
   let driftFrac = 0;
 
@@ -1029,15 +1035,17 @@ Passer for barn fra 7-10 år</div>
 
   /* ================= Screen switching ================= */
   // Which chrome each screen carries. `shapes` names the SHAPE_LAYOUT entry.
+  // `drift` is off for login: the countdown restarts on every digit, so the
+  // shapes would keep lurching back to the start as the user types.
   const CHROME = {
-    idle:      { shapes: "idle",       bar: false, profile: false, hold: false },
-    login:     { shapes: "login",      bar: true,  profile: false, hold: false },
-    loginfail: { shapes: "loginfail",  bar: true,  profile: false, hold: false },
-    hei:       { shapes: "hei",        bar: true,  profile: true,  hold: true },
-    task:      { shapes: "taskfind",   bar: true,  profile: true,  hold: true },
-    suspense:  { shapes: "suspense",   bar: false, profile: false, hold: false },
-    correct:   { shapes: "correct",    bar: true,  profile: false, hold: false },
-    wrong:     { shapes: "wrong",      bar: true,  profile: true,  hold: false }
+    idle:      { shapes: "idle",       bar: false, profile: false, hold: false, drift: false },
+    login:     { shapes: "login",      bar: true,  profile: false, hold: false, drift: false },
+    loginfail: { shapes: "loginfail",  bar: true,  profile: false, hold: false, drift: true },
+    hei:       { shapes: "hei",        bar: true,  profile: true,  hold: true,  drift: true },
+    task:      { shapes: "taskfind",   bar: true,  profile: true,  hold: true,  drift: true },
+    suspense:  { shapes: "suspense",   bar: false, profile: false, hold: false, drift: false },
+    correct:   { shapes: "correct",    bar: true,  profile: false, hold: false, drift: true },
+    wrong:     { shapes: "wrong",      bar: true,  profile: true,  hold: false, drift: true }
   };
 
   // The one shape that is in view on the suspense screen, and so the one the
@@ -1320,7 +1328,15 @@ Passer for barn fra 7-10 år</div>
     const elapsed = Date.now() - barStartedAt;
     const frac = barTotalMs > 0 ? Math.min(1, elapsed / barTotalMs) : 1;
     bar.style.width = (1600 * (1 - frac)) + "px";
-    setDrift(DRIFT_MAX * frac);
+    // The drift drives the transform directly, so it has to wait for the
+    // screen-change travel to land — otherwise it switches the transition off
+    // mid-flight and the shapes snap. Progress is measured from the moment the
+    // travel finishes, so the drift still starts at zero and reaches DRIFT_MAX
+    // exactly as the countdown expires.
+    const driftOn = CHROME[current] && CHROME[current].drift;
+    if (driftOn && elapsed >= MOVE_MS && barTotalMs > MOVE_MS) {
+      setDrift(DRIFT_MAX * (elapsed - MOVE_MS) / (barTotalMs - MOVE_MS));
+    }
     if (frac < 1) barRaf = requestAnimationFrame(tickBar);
   }
   function cancelBar() {
