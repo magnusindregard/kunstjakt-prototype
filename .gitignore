@@ -1,6 +1,6 @@
 .DS_Store
 
-# Full-res source for the oppgave 2 painting (17 MB). The prototype uses the
-# derived figma/assets/v2/painting-melkeglass.jpg instead; drop this line if
-# you want the original in the repo.
+# Full-res source for the oppgave 2 painting (17 MB). The prototype ships the
+# composited figma/assets/v2/melk-*.png instead; keep this file locally to
+# regenerate those crops, or drop this line to put the original in the repo.
 figma/assets/v2/melkeglass.jpeg

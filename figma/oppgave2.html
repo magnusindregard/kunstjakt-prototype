@@ -326,10 +326,14 @@
   }
   #task-layer { opacity: 0; pointer-events: none; }
 
-  /* melk-*.png are the melkeglass photo already composited into the same blob
+  /* melk-*.png are the melkeglass photo composited into the same blob
      silhouettes as the v2 paintings, so these are plain images like the v2 ones
-     rather than anything masked at runtime. Regenerate them from
-     painting-melkeglass.jpg if the crop needs to change. */
+     rather than anything masked at runtime.
+     The crop deliberately excludes the glass of milk — it is the answer to this
+     task, so showing it would give the game away. Source region is x 0.33-0.64,
+     y 0-0.208 of melkeglass.jpeg (the glass, its tray and her hand start at
+     y 0.23), and the blob is mirrored horizontally to frame her face. Regenerate
+     from the full-res melkeglass.jpeg if the crop needs to change. */
   #painting-find { position: absolute; left: 823px; top: 223px; width: 637px; height: 516px; }
   #painting-answer { position: absolute; left: 933px; top: 228px; width: 437px; height: 355px; }
 
