@@ -124,6 +124,8 @@
   @media (prefers-reduced-motion: reduce) {
     .shape { transition: none; }
     .shape .bob, .shape .pulse { animation: none; }
+    #burst .cshape { opacity: 1; }
+    #correct.play #burst .cshape { animation: none; transform: none; }
   }
 
   /* ---------- Screens ---------- */
@@ -398,8 +400,23 @@
   #task.answer-mode #painting-find,
   #task.answer-mode #q-find { display: none; }
 
-  /* ---------- Result: correct ---------- */
-  #burst .cshape { position: absolute; display: block; }
+  /* ---------- Result: correct ----------
+     The confetti explodes out of the suspense shape: each piece starts collapsed
+     on that shape's centre and travels to its resting place. */
+  #burst .cshape {
+    position: absolute;
+    display: block;
+    opacity: 0;
+    transform-origin: center center;
+  }
+  #correct.play #burst .cshape {
+    animation: burstOut 820ms cubic-bezier(0.34, 1.32, 0.64, 1) var(--delay, 0ms) both;
+  }
+  @keyframes burstOut {
+    0%   { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(0.1) rotate(var(--rot, 0deg)); }
+    22%  { opacity: 1; }
+    100% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  }
 
   /* ---------- Result: wrong ---------- */
   #painting-wrong { position: absolute; left: 754px; top: 184px; width: 587px; height: 476px; }
@@ -534,12 +551,27 @@ Passer for barn fra 7-10 år</div>
     <!-- ===================== RESPONSE: CORRECT ===================== -->
     <div id="correct" class="screen">
       <div id="burst">
-        <img class="cshape" src="assets/v2/burst-pebble-lightblue.svg" style="left:902px;top:172px;width:425px;height:416.18px" alt="">
-        <img class="cshape" src="assets/v2/burst-blob-yellow.svg"      style="left:1043px;top:279px;width:173px;height:168.4px" alt="">
-        <img class="cshape" src="assets/v2/burst-star-yellow.svg"      style="left:1183px;top:523px;width:189.14px;height:184.42px" alt="">
-        <img class="cshape" src="assets/v2/burst-star-green.svg"       style="left:788px;top:180px;width:342px;height:334px" alt="">
-        <img class="cshape" src="assets/v2/burst-cloud.png"            style="left:837px;top:318px;width:400.38px;height:324.33px" alt="">
-        <img class="cshape" src="assets/v2/burst-star-blue.svg"        style="left:820px;top:511px;width:189.14px;height:184.42px" alt="">
+        <!-- Confetti. Each shape starts collapsed on the suspense shape's
+             centre (799.5, 449.5) and flies out to its resting place; --sx/--sy
+             are the vector from that resting place back to the origin. -->
+        <img class="cshape" src="assets/v2/burst-pebble-lightblue.svg" alt=""
+             style="left:902px; top:172px; width:425px; height:416.18px;
+                    --sx:-315px; --sy:69.4px; --rot:-22deg; --delay:110ms">
+        <img class="cshape" src="assets/v2/burst-blob-yellow.svg" alt=""
+             style="left:1043px; top:279px; width:173px; height:168.4px;
+                    --sx:-330px; --sy:86.3px; --rot:40deg; --delay:160ms">
+        <img class="cshape" src="assets/v2/burst-star-yellow.svg" alt=""
+             style="left:1183px; top:523px; width:189.14px; height:184.42px;
+                    --sx:-478.1px; --sy:-165.7px; --rot:30deg; --delay:260ms">
+        <img class="cshape" src="assets/v2/burst-star-green.svg" alt=""
+             style="left:788px; top:180px; width:342px; height:334px;
+                    --sx:-159.5px; --sy:102.5px; --rot:26deg; --delay:70ms">
+        <img class="cshape" src="assets/v2/burst-cloud.png" alt=""
+             style="left:837px; top:318px; width:400.38px; height:324.33px;
+                    --sx:-237.7px; --sy:-30.7px; --rot:-14deg; --delay:0ms">
+        <img class="cshape" src="assets/v2/burst-star-blue.svg" alt=""
+             style="left:820px; top:511px; width:189.14px; height:184.42px;
+                    --sx:-115.1px; --sy:-153.7px; --rot:-34deg; --delay:210ms">
       </div>
       <div class="t t-display" style="left:111px;top:231px;width:760px">Herlig,</div>
       <span class="avatar" data-avatar style="position:absolute;left:111px;top:354px;width:60px;height:62px"></span>
@@ -670,7 +702,11 @@ Passer for barn fra 7-10 år</div>
       "bottomleft":       [-140, 1002.88, 334.18, 348.15]
     },
     correct: {
-      "splat-lilac":      [1142, 98, 370.33, 385.64],
+      // splat-lilac is deliberately absent, so it stays parked out of view: it
+      // shows up on other screens, and the confetti is made only of shapes
+      // unique to this one. The suspense shape collapses onto the burst origin,
+      // so the confetti appears to fly out of it.
+      "squiggle-lilac":   [799.5, 449.5, 1, 0.85],
       "wave-ghost":       [338, 970, 438.45, 374.35],
       "bottomleft":       [-140, 1002.88, 334.18, 348.15]
     },
@@ -1081,7 +1117,12 @@ Passer for barn fra 7-10 år</div>
 
   function showResult(isCorrect) {
     readConfig();
+    screens.correct.classList.remove("play");
     showScreen(isCorrect ? "correct" : "wrong");
+    if (isCorrect) {
+      void screens.correct.offsetWidth; // replay the burst from its first frame
+      screens.correct.classList.add("play");
+    }
     // Every countdown that runs out ends the session on the idle screen.
     resultTimer = window.setTimeout(logout, RESULT_DISPLAY_MS);
     startBar(RESULT_DISPLAY_MS);
