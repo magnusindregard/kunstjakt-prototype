@@ -22,9 +22,8 @@
     --border: #949494;
     --font: 'Museet Sans Text', 'Helvetica Neue', Arial, sans-serif;
 
-    /* Screen transition. Shapes reposition while the layer is faded out, so
-       nothing snaps in view. When the shape animation lands, this is the knob
-       to swap for a transform transition on .shape itself. */
+    /* Cross-fade for the screen content. The shapes are not faded — they
+       travel between screens instead; see --move-dur below. */
     --xfade: 220ms;
   }
 
@@ -73,20 +72,58 @@
   /* ---------- Shape layer ----------
      One persistent element per shape in the toolbox. Every screen gives every
      shape a position (in view or parked outside the frame) — see SHAPE_LAYOUT
-     in the script. Today positions are applied instantly behind an opacity
-     cross-fade; the same table is what the shape animation will tween. */
+     in the script — and changing screen tweens each shape from its old position
+     to its new one.
+
+     Three nested elements, because position, bob and pulse would otherwise all
+     be fighting over the same `transform`:
+       .shape  layout position + per-screen size, transitioned on screen change
+       .bob    slow vertical drift
+       .pulse  size pulse, on a different rhythm to the bob
+     Tune the four values below. */
+  :root {
+    --move-dur: 900ms;                          /* screen-to-screen travel */
+    --move-ease: cubic-bezier(0.45, 0, 0.25, 1);
+    --bob-dist: 5px;                            /* vertical drift, each way */
+    --pulse-min: 0.95;                          /* size pulse, 5% either way */
+    --pulse-max: 1.05;
+  }
   #shapes, #burst {
     position: absolute;
     inset: 0;
     pointer-events: none;
   }
-  #shapes { transition: opacity var(--xfade) ease; }
   .shape {
     position: absolute;
-    display: block;
     left: 0;
     top: 0;
+    transform-origin: 0 0;   /* so scale() grows from the layout position */
     will-change: transform;
+    transition: transform var(--move-dur) var(--move-ease);
+  }
+  #shapes.no-move .shape { transition: none; }
+  .shape .bob, .shape .pulse { width: 100%; height: 100%; }
+  .shape img { width: 100%; height: 100%; display: block; }
+
+  /* Durations and negative delays are set per shape in the script, so no two
+     shapes — and neither of the two rhythms — stay in step. */
+  .shape .bob {
+    animation: shapeBob var(--bob-dur, 7300ms) ease-in-out var(--bob-delay, 0ms) infinite;
+  }
+  .shape .pulse {
+    animation: shapePulse var(--pulse-dur, 5200ms) ease-in-out var(--pulse-delay, 0ms) infinite;
+  }
+  @keyframes shapeBob {
+    0%, 100% { transform: translateY(calc(var(--bob-dist) * -1)); }
+    50%      { transform: translateY(var(--bob-dist)); }
+  }
+  @keyframes shapePulse {
+    0%, 100% { transform: scale(var(--pulse-min)); }
+    50%      { transform: scale(var(--pulse-max)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shape { transition: none; }
+    .shape .bob, .shape .pulse { animation: none; }
   }
 
   /* ---------- Screens ---------- */
@@ -426,18 +463,18 @@
 
     <!-- ============ SHAPE LAYER (persistent across screens) ============ -->
     <div id="shapes">
-      <img class="shape" data-shape="squiggle-lilac"    src="assets/v2/shape-squiggle-lilac.svg" alt="">
-      <img class="shape" data-shape="outline"           src="assets/v2/shape-outline.svg" alt="">
-      <img class="shape" data-shape="splat-pink"        src="assets/v2/shape-splat-pink.svg" alt="">
-      <img class="shape" data-shape="splat-lilac"       src="assets/v2/shape-splat-lilac.svg" alt="">
-      <img class="shape" data-shape="wave-lightblue"    src="assets/v2/shape-wave-lightblue.svg" alt="">
-      <img class="shape" data-shape="wave-blue"         src="assets/v2/shape-wave-blue.svg" alt="">
-      <img class="shape" data-shape="wave-ghost"        src="assets/v2/shape-wave-ghost.svg" alt="">
-      <img class="shape" data-shape="curl-green"        src="assets/v2/shape-curl-green.svg" alt="">
-      <img class="shape" data-shape="curlbig-green"     src="assets/v2/shape-curlbig-green.svg" alt="">
-      <img class="shape" data-shape="pebble-lightblue"  src="assets/v2/shape-pebble-lightblue.svg" alt="">
-      <img class="shape" data-shape="pebble2-lightblue" src="assets/v2/shape-pebble2-lightblue.svg" alt="">
-      <img class="shape" data-shape="bottomleft"        src="assets/v2/shape-bottomleft.svg" alt="">
+      <div class="shape" data-shape="squiggle-lilac"><div class="bob"><div class="pulse"><img src="assets/v2/shape-squiggle-lilac.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="outline"><div class="bob"><div class="pulse"><img src="assets/v2/shape-outline.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="splat-pink"><div class="bob"><div class="pulse"><img src="assets/v2/shape-splat-pink.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="splat-lilac"><div class="bob"><div class="pulse"><img src="assets/v2/shape-splat-lilac.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="wave-lightblue"><div class="bob"><div class="pulse"><img src="assets/v2/shape-wave-lightblue.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="wave-blue"><div class="bob"><div class="pulse"><img src="assets/v2/shape-wave-blue.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="wave-ghost"><div class="bob"><div class="pulse"><img src="assets/v2/shape-wave-ghost.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="curl-green"><div class="bob"><div class="pulse"><img src="assets/v2/shape-curl-green.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="curlbig-green"><div class="bob"><div class="pulse"><img src="assets/v2/shape-curlbig-green.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="pebble-lightblue"><div class="bob"><div class="pulse"><img src="assets/v2/shape-pebble-lightblue.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="pebble2-lightblue"><div class="bob"><div class="pulse"><img src="assets/v2/shape-pebble2-lightblue.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="bottomleft"><div class="bob"><div class="pulse"><img src="assets/v2/shape-bottomleft.svg" alt=""></div></div></div>
     </div>
 
     <!-- ===================== IDLE / HOME ===================== -->
@@ -788,15 +825,40 @@ Passer for barn fra 7-10 år</div>
   debugToggle.addEventListener("click", function () { debugPanel.classList.toggle("open"); });
 
   /* ================= Shape placement ================= */
-  function placeShapes(layoutKey) {
+  // Each shape is laid out at its base size and scaled per screen, so the
+  // screen change tweens one transform rather than animating width/height.
+  const SHAPE_BASE = {};
+  function initShapes() {
+    let i = 0;
+    Object.keys(shapeEls).forEach(function (name) {
+      const el = shapeEls[name];
+      SHAPE_BASE[name] = [PARK[name][2], PARK[name][3]];
+      el.style.width = SHAPE_BASE[name][0] + "px";
+      el.style.height = SHAPE_BASE[name][1] + "px";
+      // Different periods for bob and pulse, and a different pair per shape, so
+      // nothing beats in unison. Negative delays start each one mid-cycle.
+      el.style.setProperty("--bob-dur", (7300 + i * 430) + "ms");
+      el.style.setProperty("--pulse-dur", (5200 + i * 310) + "ms");
+      el.style.setProperty("--bob-delay", (-i * 620) + "ms");
+      el.style.setProperty("--pulse-delay", (-i * 470) + "ms");
+      i++;
+    });
+  }
+
+  function placeShapes(layoutKey, instant) {
     const layout = SHAPE_LAYOUT[layoutKey] || {};
+    if (instant) shapeLayer.classList.add("no-move");
     Object.keys(shapeEls).forEach(function (name) {
       const p = layout[name] || PARK[name];
       const el = shapeEls[name];
-      el.style.width = p[2] + "px";
-      el.style.height = p[3] + "px";
-      el.style.transform = "translate(" + p[0] + "px," + p[1] + "px)";
+      const scale = p[2] / SHAPE_BASE[name][0];
+      el.style.transform =
+        "translate(" + p[0] + "px," + p[1] + "px) scale(" + scale + ")";
     });
+    if (instant) {
+      void shapeLayer.offsetWidth; // land the first placement before animating
+      shapeLayer.classList.remove("no-move");
+    }
   }
 
   /* ================= Screen switching ================= */
@@ -814,12 +876,8 @@ Passer for barn fra 7-10 år</div>
 
   function showScreen(id, shapeKeyOverride) {
     const chrome = CHROME[id];
-    if (current && current !== id) shapeLayer.style.opacity = "0";
-
-    window.setTimeout(function () {
-      placeShapes(shapeKeyOverride || chrome.shapes);
-      shapeLayer.style.opacity = "1";
-    }, current && current !== id ? 200 : 0);
+    // Shapes travel to their new positions while the screen content cross-fades.
+    placeShapes(shapeKeyOverride || chrome.shapes, current === null);
 
     Object.keys(screens).forEach(function (k) {
       screens[k].classList.toggle("active", k === id);
@@ -1114,6 +1172,7 @@ Passer for barn fra 7-10 år</div>
   }
 
   /* ================= Boot ================= */
+  initShapes();
   resetCode();
   showScreen("idle");
 })();
