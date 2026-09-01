@@ -581,7 +581,7 @@ Passer for barn fra 7-10 år</div>
       <div id="greet-title">
         <span>Hei,</span><span class="gap-a"></span><span class="avatar" data-avatar></span><span class="gap-b"></span><span data-username>Kristine</span><span>!</span>
       </div>
-      <div class="t t-body" style="left:107px;top:475px;width:505px">Trykk på den oransje sirkelen for å få oppgaven</div>
+      <div class="t t-body" id="greet-sub" style="left:107px;top:475px;width:505px"></div>
     </div>
 
     <!-- ===================== TASK (find / answer) ===================== -->
@@ -848,6 +848,11 @@ Passer for barn fra 7-10 år</div>
   /* ---- Users. Any other code lands on the "feil kode" screen. ---- */
   const USERS = { "323": "Kristine", "118": "Jonas", "764": "Amina", "905": "Theo" };
 
+  /* ---- Greeting copy. The second time round the user is coming back with the
+     answer, so the greeting asks for it rather than handing out the task. ---- */
+  const GREET_FIRST = "Trykk på den oransje sirkelen for å få oppgaven";
+  const GREET_RETURN = "Fant du svaret? Trykk på den oransje sirkelen for å få alternativene.";
+
   /* ---- Task copy ---- */
   const CORRECT_ANSWER = "Han ror";
   const QUESTION_FIND =
@@ -891,6 +896,7 @@ Passer for barn fra 7-10 år</div>
   const holdLabel = document.getElementById("hold-label");
   const profile = document.getElementById("profile");
   const bar = document.getElementById("bar");
+  const greetSub = document.getElementById("greet-sub");
   const codeDigits = document.getElementById("code-digits");
   const keypad = document.getElementById("keypad");
 
@@ -1162,6 +1168,9 @@ Passer for barn fra 7-10 år</div>
     taskLayer.style.transitionDuration = "0ms";
     taskLayer.style.opacity = "0";
     taskLayer.style.pointerEvents = "none";
+    // `visits` is odd once the task has been shown once, so the next hold opens
+    // the answer screen — greet accordingly.
+    greetSub.textContent = (visits % 2 === 1) ? GREET_RETURN : GREET_FIRST;
     setHoldLabel(1, 0);
     showScreen("hei");
     armLogout();
