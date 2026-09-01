@@ -121,9 +121,23 @@
     0%, 100% { transform: scale(var(--pulse-min)); }
     50%      { transform: scale(var(--pulse-max)); }
   }
+  /* On the suspense screen the shape swaps its slow drift for a jitter and
+     throbs faster — it is working itself up to burst into the confetti. */
+  .shape.vibrate .bob {
+    animation: shapeVibrate 110ms linear infinite;
+  }
+  .shape.vibrate .pulse {
+    animation-duration: 700ms;
+  }
+  @keyframes shapeVibrate {
+    0%, 100% { transform: translate(-2.5px, 1px) rotate(-1.2deg); }
+    25%      { transform: translate(2.5px, -1.5px) rotate(1.2deg); }
+    50%      { transform: translate(-1.5px, -2.5px) rotate(-0.8deg); }
+    75%      { transform: translate(1.5px, 2.5px) rotate(0.8deg); }
+  }
   @media (prefers-reduced-motion: reduce) {
     .shape { transition: none; }
-    .shape .bob, .shape .pulse { animation: none; }
+    .shape .bob, .shape .pulse, .shape.vibrate .bob { animation: none; }
     #burst .cshape { opacity: 1; }
     #correct.play #burst .cshape { animation: none; transform: none; }
   }
@@ -551,9 +565,10 @@ Passer for barn fra 7-10 år</div>
     <!-- ===================== RESPONSE: CORRECT ===================== -->
     <div id="correct" class="screen">
       <div id="burst">
-        <!-- Confetti. Each shape starts collapsed on the suspense shape's
+        <!-- Confetti. Each piece starts collapsed on the suspense shape's
              centre (799.5, 449.5) and flies out to its resting place; --sx/--sy
-             are the vector from that resting place back to the origin. -->
+             are the vector from that resting place back to the origin. Every
+             shape here is used on this screen only. -->
         <img class="cshape" src="assets/v2/burst-pebble-lightblue.svg" alt=""
              style="left:902px; top:172px; width:425px; height:416.18px;
                     --sx:-315px; --sy:69.4px; --rot:-22deg; --delay:110ms">
@@ -562,7 +577,7 @@ Passer for barn fra 7-10 år</div>
                     --sx:-330px; --sy:86.3px; --rot:40deg; --delay:160ms">
         <img class="cshape" src="assets/v2/burst-star-yellow.svg" alt=""
              style="left:1183px; top:523px; width:189.14px; height:184.42px;
-                    --sx:-478.1px; --sy:-165.7px; --rot:30deg; --delay:260ms">
+                    --sx:-478.1px; --sy:-165.7px; --rot:30deg; --delay:300ms">
         <img class="cshape" src="assets/v2/burst-star-green.svg" alt=""
              style="left:788px; top:180px; width:342px; height:334px;
                     --sx:-159.5px; --sy:102.5px; --rot:26deg; --delay:70ms">
@@ -571,7 +586,37 @@ Passer for barn fra 7-10 år</div>
                     --sx:-237.7px; --sy:-30.7px; --rot:-14deg; --delay:0ms">
         <img class="cshape" src="assets/v2/burst-star-blue.svg" alt=""
              style="left:820px; top:511px; width:189.14px; height:184.42px;
-                    --sx:-115.1px; --sy:-153.7px; --rot:-34deg; --delay:210ms">
+                    --sx:-115.1px; --sy:-153.7px; --rot:-34deg; --delay:200ms">
+        <img class="cshape" src="assets/v2/burst-blob-pink.svg" alt=""
+             style="left:648px; top:430px; width:90px; height:87.62px;
+                    --sx:106.5px; --sy:-24.3px; --rot:44deg; --delay:230ms">
+        <img class="cshape" src="assets/v2/burst-blob-green.svg" alt=""
+             style="left:968px; top:58px; width:94px; height:91.51px;
+                    --sx:-215.5px; --sy:345.7px; --rot:-30deg; --delay:260ms">
+        <img class="cshape" src="assets/v2/burst-star-lilac.svg" alt=""
+             style="left:690px; top:120px; width:98px; height:95.58px;
+                    --sx:60.5px; --sy:281.7px; --rot:38deg; --delay:280ms">
+        <img class="cshape" src="assets/v2/burst-blob-blue.svg" alt=""
+             style="left:1130px; top:706px; width:108px; height:105.14px;
+                    --sx:-384.5px; --sy:-309.1px; --rot:-46deg; --delay:320ms">
+        <img class="cshape" src="assets/v2/burst-star-darkgreen.svg" alt=""
+             style="left:628px; top:648px; width:118px; height:115.08px;
+                    --sx:112.5px; --sy:-256px; --rot:-24deg; --delay:340ms">
+        <img class="cshape" src="assets/v2/burst-star-lightblue.svg" alt=""
+             style="left:1232px; top:72px; width:108px; height:105.33px;
+                    --sx:-486.5px; --sy:324.8px; --rot:34deg; --delay:360ms">
+        <img class="cshape" src="assets/v2/burst-blob-lilac.svg" alt=""
+             style="left:1305px; top:110px; width:112px; height:109.04px;
+                    --sx:-561.5px; --sy:285px; --rot:-38deg; --delay:380ms">
+        <img class="cshape" src="assets/v2/burst-pebble-lilac.svg" alt=""
+             style="left:1338px; top:556px; width:156px; height:152.77px;
+                    --sx:-616.5px; --sy:-182.9px; --rot:20deg; --delay:400ms">
+        <img class="cshape" src="assets/v2/burst-star-pink.svg" alt=""
+             style="left:1395px; top:190px; width:130px; height:126.78px;
+                    --sx:-660.5px; --sy:196.1px; --rot:-42deg; --delay:430ms">
+        <img class="cshape" src="assets/v2/burst-star-orange.svg" alt=""
+             style="left:1430px; top:395px; width:124px; height:120.93px;
+                    --sx:-692.5px; --sy:-6px; --rot:28deg; --delay:460ms">
       </div>
       <div class="t t-display" style="left:111px;top:231px;width:760px">Herlig,</div>
       <span class="avatar" data-avatar style="position:absolute;left:111px;top:354px;width:60px;height:62px"></span>
@@ -624,7 +669,7 @@ Passer for barn fra 7-10 år</div>
   <label>Fade inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
   <label>Ventetid før nedtoning (s)<input type="number" id="cfg-grace" value="6" min="0" step="1"></label>
   <label>Nedtoning, varighet (s)<input type="number" id="cfg-fadeout" value="4" min="1" step="1"></label>
-  <label>Spenning / loader (ms)<input type="number" id="cfg-suspense" value="1600" min="0" step="100"></label>
+  <label>Spenning / loader (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
   <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="5" min="1" step="1"></label>
   <label>Utlogging ved inaktivitet (s)<input type="number" id="cfg-logout" value="15" min="5" step="5"></label>
   <div id="debug-note">Gyldige koder: <b>323</b> (Kristine), <b>118</b> (Jonas), <b>764</b> (Amina), <b>905</b> (Theo). Alt annet gir feilskjermen.</div>
@@ -772,7 +817,7 @@ Passer for barn fra 7-10 år</div>
   let FADE_IN_MS = 400;
   let GRACE_MS = 6000;
   let FADE_OUT_MS = 4000;
-  let SUSPENSE_MS = 1600;
+  let SUSPENSE_MS = 2500;
   let RESULT_DISPLAY_MS = 5000;
   let LOGOUT_MS = 15000;
 
@@ -910,10 +955,15 @@ Passer for barn fra 7-10 år</div>
     wrong:     { shapes: "wrong",      bar: true,  profile: true,  hold: false }
   };
 
+  // The one shape that is in view on the suspense screen, and so the one the
+  // confetti bursts out of.
+  const SUSPENSE_SHAPE = "squiggle-lilac";
+
   function showScreen(id, shapeKeyOverride) {
     const chrome = CHROME[id];
     // Shapes travel to their new positions while the screen content cross-fades.
     placeShapes(shapeKeyOverride || chrome.shapes, current === null);
+    shapeEls[SUSPENSE_SHAPE].classList.toggle("vibrate", id === "suspense");
 
     Object.keys(screens).forEach(function (k) {
       screens[k].classList.toggle("active", k === id);
