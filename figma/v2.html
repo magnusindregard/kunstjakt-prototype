@@ -332,18 +332,28 @@
   #q-find   { position: absolute; left: 127px; top: 453px; transform: translateY(-50%); width: 626px; }
   #q-answer { position: absolute; left: 121px; top: 433.5px; transform: translateY(-50%); width: 629px; }
 
+  /* Two explicit rows rather than flex-wrap: the answers must always fall on
+     two lines, and letting them wrap freely pushes one onto a third line as
+     soon as the real Museet Sans (wider than the fallback) is available. The
+     box is wider than the 821px in Figma so a wide font still has room; the
+     rows stay centred on the same axis, and the container ignores pointer
+     events so it can't cover the hold circle. */
   #options {
     position: absolute;
-    left: 355px;
+    left: 155px;
     top: 625px;
-    width: 821px;
+    width: 1221px;
     display: flex;
-    flex-wrap: wrap;
-    align-content: center;
+    flex-direction: column;
+    gap: 24px;
+    pointer-events: none;
+  }
+  #options .option-row {
+    display: flex;
     justify-content: center;
     gap: 24px;
   }
-  #options .btn { position: relative; }
+  #options .btn { position: relative; pointer-events: auto; }
 
   #task.find-mode #painting-answer,
   #task.find-mode #q-answer,
@@ -469,10 +479,14 @@ Passer for barn fra 7-10 år</div>
         <div id="q-find" class="t t-task"></div>
         <div id="q-answer" class="t t-task"></div>
         <div id="options">
-          <button type="button" class="btn" data-answer="Han ror">Han ror</button>
-          <button type="button" class="btn" data-answer="Han fisker">Han fisker</button>
-          <button type="button" class="btn" data-answer="Han synger en lang sang">Han synger en lang sang</button>
-          <button type="button" class="btn" data-answer="Han styrer båten">Han styrer båten</button>
+          <div class="option-row">
+            <button type="button" class="btn" data-answer="Han ror">Han ror</button>
+            <button type="button" class="btn" data-answer="Han fisker">Han fisker</button>
+          </div>
+          <div class="option-row">
+            <button type="button" class="btn" data-answer="Han synger en lang sang">Han synger en lang sang</button>
+            <button type="button" class="btn" data-answer="Han styrer båten">Han styrer båten</button>
+          </div>
         </div>
       </div>
     </div>
@@ -835,7 +849,9 @@ Passer for barn fra 7-10 år</div>
     stopStatusTicker();
     hideBar();
     user = null;
-    visits = 0;
+    // `visits` deliberately survives logout: every countdown now ends the
+    // session, so alternating find/answer across sessions is what makes both
+    // states of the task screen reachable.
     resetCode();
     showScreen("idle");
   }
@@ -967,7 +983,7 @@ Passer for barn fra 7-10 år</div>
     taskLayer.style.opacity = "0";
     setHoldLabel(1, FADE_OUT_MS);
     fadeOutEndsAt = Date.now() + FADE_OUT_MS;
-    fadeOutTimer = window.setTimeout(enterGreeting, FADE_OUT_MS);
+    fadeOutTimer = window.setTimeout(logout, FADE_OUT_MS);
   }
 
   holdZone.addEventListener("pointerdown", onHoldStart);
@@ -1008,7 +1024,8 @@ Passer for barn fra 7-10 år</div>
   function showResult(isCorrect) {
     readConfig();
     showScreen(isCorrect ? "correct" : "wrong");
-    resultTimer = window.setTimeout(isCorrect ? logout : backToTask, RESULT_DISPLAY_MS);
+    // Every countdown that runs out ends the session on the idle screen.
+    resultTimer = window.setTimeout(logout, RESULT_DISPLAY_MS);
     startBar(RESULT_DISPLAY_MS);
   }
 
@@ -1086,7 +1103,7 @@ Passer for barn fra 7-10 år</div>
     const now = Date.now();
     let state, detail;
     if (holding) { state = "HOLDER"; detail = "oppgaven er synlig"; }
-    else if (fadeOutEndsAt) { state = "TONER NED"; detail = Math.max(0, (fadeOutEndsAt - now) / 1000).toFixed(1) + "s til hvileskjerm"; }
+    else if (fadeOutEndsAt) { state = "TONER NED"; detail = Math.max(0, (fadeOutEndsAt - now) / 1000).toFixed(1) + "s til startskjerm"; }
     else if (graceEndsAt) { state = "VENTER"; detail = Math.max(0, (graceEndsAt - now) / 1000).toFixed(1) + "s til nedtoning"; }
     else if (logoutEndsAt) { state = "INAKTIV"; detail = Math.max(0, (logoutEndsAt - now) / 1000).toFixed(1) + "s til utlogging"; }
     else { state = "IDLE"; detail = "-"; }
