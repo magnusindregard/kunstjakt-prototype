@@ -553,11 +553,11 @@ Passer for barn fra 7-10 år</div>
   <h2>Timeout-mekanikk</h2>
   <label>Inaktivitet før nedtelling (s)<input type="number" id="cfg-init-wait" value="10" min="0" step="1"></label>
   <label>Fade inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
-  <label>Ventetid før nedtoning (s)<input type="number" id="cfg-grace" value="1" min="0" step="1"></label>
-  <label>Nedtoning, varighet (s)<input type="number" id="cfg-fadeout" value="7" min="1" step="1"></label>
+  <label>Ventetid før nedtoning (s)<input type="number" id="cfg-grace" value="6" min="0" step="1"></label>
+  <label>Nedtoning, varighet (s)<input type="number" id="cfg-fadeout" value="4" min="1" step="1"></label>
   <label>Spenning / loader (ms)<input type="number" id="cfg-suspense" value="1600" min="0" step="100"></label>
-  <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="8" min="1" step="1"></label>
-  <label>Utlogging ved inaktivitet (s)<input type="number" id="cfg-logout" value="60" min="5" step="5"></label>
+  <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="5" min="1" step="1"></label>
+  <label>Utlogging ved inaktivitet (s)<input type="number" id="cfg-logout" value="15" min="5" step="5"></label>
   <div id="debug-note">Gyldige koder: <b>323</b> (Kristine), <b>118</b> (Jonas), <b>764</b> (Amina), <b>905</b> (Theo). Alt annet gir feilskjermen.</div>
   <div id="debug-status"></div>
 </div>
@@ -697,11 +697,11 @@ Passer for barn fra 7-10 år</div>
   /* ---- Config ---- */
   let INIT_WAIT_MS = 10000;
   let FADE_IN_MS = 400;
-  let GRACE_MS = 1000;
-  let FADE_OUT_MS = 7000;
+  let GRACE_MS = 6000;
+  let FADE_OUT_MS = 4000;
   let SUSPENSE_MS = 1600;
-  let RESULT_DISPLAY_MS = 8000;
-  let LOGOUT_MS = 60000;
+  let RESULT_DISPLAY_MS = 5000;
+  let LOGOUT_MS = 15000;
 
   /* ---- Elements ---- */
   const stage = document.getElementById("stage");
