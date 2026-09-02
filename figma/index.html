@@ -30,19 +30,19 @@
     font-family: var(--font);
     color: var(--ink);
     overflow: hidden;
-    overscroll-behavior: none;      /* no rubber-band / pull-to-refresh on iPad Safari */
+    overscroll-behavior: none;      /* no rubber-band / pull-to-refresh on touch */
     -webkit-user-select: none;
     user-select: none;
   }
   body {
-    position: fixed;                /* lock the page so Safari can't scroll the shell */
+    position: fixed;                /* lock the page so the browser can't scroll the shell */
     inset: 0;
     width: 100%;
-    -webkit-text-size-adjust: 100%; /* keep font sizes exact when rotating */
+    -webkit-text-size-adjust: 100%; /* keep font sizes exact */
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* ---------- Scaled 1600x1113 stage (fills 1366x950 iPad viewport) ---------- */
+  /* ---------- Scaled 1600x900 (16:9) stage ---------- */
   #viewport {
     position: fixed;
     inset: 0;
@@ -56,7 +56,7 @@
   #stage {
     position: relative;
     width: 1600px;
-    height: 1113px;
+    height: 900px;
     background: var(--white);
     overflow: hidden;
     transform: scale(var(--s, 1));
@@ -99,7 +99,7 @@
   .wordmark {
     position: absolute;
     left: 86px;
-    top: 489.7px;
+    top: 396px;
     transform: translateY(-50%);
     font-size: 350px;
     line-height: 1;
@@ -109,7 +109,7 @@
   .tagline {
     position: absolute;
     left: 94px;
-    top: 887.9px;
+    top: 718px;
     width: 560px;
     font-size: 40px;
     line-height: 1.2;
@@ -119,7 +119,7 @@
   .btn-start {
     position: absolute;
     left: 1241px;
-    top: 881.7px;
+    top: 713px;
     height: 106px;
     padding: 0 51px;
     display: inline-flex;
@@ -140,7 +140,7 @@
   .btn-ferdig {
     position: absolute;
     left: 1389px;
-    top: 951px;
+    top: 769px;
     height: 76px;
     padding: 0 30px;
     display: inline-flex;
@@ -160,17 +160,17 @@
   #painting {
     position: absolute;
     left: 778px;
-    top: 265.9px;
+    top: 215px;
     width: 637px;
     height: auto;
     display: block;
   }
-  #task.answer-mode #painting { left: 795px; top: 176.8px; }
+  #task.answer-mode #painting { left: 795px; top: 143px; }
 
   #question {
     position: absolute;
     left: 78px;
-    top: 583.7px;
+    top: 472px;
     transform: translateY(-50%);
     width: 683px;
     font-size: 34px;
@@ -178,12 +178,12 @@
     letter-spacing: -0.68px;
     white-space: pre-line;
   }
-  #task.answer-mode #question { top: 516.9px; }
+  #task.answer-mode #question { top: 418px; }
 
   #options {
     position: absolute;
     left: 78px;
-    top: 917.6px;
+    top: 742px;
     width: 1120px;
     display: none;
     flex-wrap: wrap;
@@ -220,7 +220,7 @@
   #welcome-title {
     position: absolute;
     left: 78px;
-    top: 461.3px;
+    top: 373px;
     transform: translateY(-50%);
     font-size: 76px;
     line-height: 1;
@@ -230,7 +230,7 @@
   #welcome-sub {
     position: absolute;
     left: 80px;
-    top: 622px;
+    top: 503px;
     transform: translateY(-50%);
     width: 517px;
     font-size: 40px;
@@ -250,7 +250,7 @@
   #hold-zone {
     position: absolute;
     left: 1366px;
-    top: 862px;
+    top: 697px;
     width: 159px;
     height: 159px;
   }
@@ -280,7 +280,7 @@
   #hold-text {
     position: absolute;
     left: 0; right: 0;
-    top: 37.1px;
+    top: 30px;
     text-align: center;
     color: #fff;
     font-size: 27px;
@@ -296,7 +296,7 @@
   #result-graphic-correct {
     position: absolute;
     left: 647px;
-    top: 126.1px;
+    top: 102px;
     width: 306px;
     display: none; /* replaced by the shape cluster (#burst) on the correct screen */
   }
@@ -304,7 +304,7 @@
   #result-graphic-wrong {
     position: absolute;
     left: 706px;
-    top: 252.3px;
+    top: 204px;
     width: 194px;
     display: none;
   }
@@ -313,7 +313,7 @@
   #result-graphic-wrong .x {
     position: absolute;
     left: 54px;
-    top: 71.7px;
+    top: 58px;
     width: 85px;
   }
 
@@ -322,7 +322,7 @@
   #result-title {
     position: absolute;
     left: 50%;
-    top: 618.3px;
+    top: 500px;
     transform: translate(-50%, -50%);
     font-size: 96px;
     letter-spacing: -1.92px;
@@ -333,7 +333,7 @@
   #result-sub {
     position: absolute;
     left: 50%;
-    top: 791.5px;
+    top: 640px;
     transform: translate(-50%, -50%);
     width: 640px;
     font-size: 40px;
@@ -344,14 +344,14 @@
   #progress {
     position: absolute;
     left: 78px;
-    top: 939.9px;
+    top: 760px;
     width: 150px;
     display: block;
   }
   #progress-text {
     position: absolute;
     left: 78px;
-    top: 1004.2px;
+    top: 812px;
     font-size: 25px;
     letter-spacing: -0.25px;
     white-space: nowrap;
@@ -363,7 +363,7 @@
 
   #result.correct #result-title {
     left: 99px;
-    top: 413.7px;
+    top: 334.5px;
     transform: translateY(-50%);
     width: 458px;
     font-size: 80px;
@@ -374,7 +374,7 @@
   }
   #result.correct #result-sub {
     left: 99px;
-    top: 604.7px;
+    top: 489px;
     transform: translateY(-50%);
     width: 458px;
     font-size: 40px;
@@ -384,7 +384,7 @@
   }
   #result.correct #progress-text {
     left: 99px;
-    top: 734.6px;
+    top: 594px;
     transform: translateY(-50%);
     font-size: 25.28px;
     letter-spacing: -0.253px;
@@ -393,7 +393,7 @@
   /* Ferdig button, correct screen: white with orange offset shadow */
   #result.correct #btn-ferdig {
     left: 1312px;
-    top: 928.7px;
+    top: 751px;
     height: 80px;
     padding: 0 40px;
     background: var(--white);
@@ -408,7 +408,7 @@
   #burst {
     position: absolute;
     left: 557px;
-    top: 113.8px;
+    top: 92px;
     width: 955px;
     height: 668px;
     display: none;
@@ -486,7 +486,7 @@
   /* ---------- Debug / settings ---------- */
   #debug-toggle {
     position: fixed;
-    top: 14.8px; right: 12px;
+    top: 12px; right: 12px;
     z-index: 40;
     width: 34px; height: 34px;
     border-radius: 50%;
@@ -498,7 +498,7 @@
   }
   #debug-panel {
     position: fixed;
-    top: 64.3px; right: 12px;
+    top: 52px; right: 12px;
     z-index: 40;
     width: 290px;
     background: #1e2126;
@@ -537,14 +537,14 @@
 
     <!-- ===================== ATTRACT (Frame 58) ===================== -->
     <div id="attract" class="screen active">
-      <img class="blob" src="assets/blob58-d.svg" style="left:855px;top:-290.6px;width:304px">
-      <img class="blob" src="assets/blob58-a.svg" style="left:507px;top:-185.5px;width:370px">
-      <img class="blob" src="assets/blob58-b.svg" style="left:981px;top:-170.7px;width:436px">
-      <img class="blob" src="assets/blob58-e.svg" style="left:1220px;top:249.8px;width:268px">
-      <img class="blob" src="assets/blob58-c.svg" style="left:838px;top:859.5px;width:438px">
-      <img class="blob" src="assets/blob-bottomleft.svg" style="left:-140px;top:1239.1px;width:334px">
+      <img class="blob" src="assets/blob58-d.svg" style="left:855px;top:-235px;width:304px">
+      <img class="blob" src="assets/blob58-a.svg" style="left:507px;top:-150px;width:370px">
+      <img class="blob" src="assets/blob58-b.svg" style="left:981px;top:-138px;width:436px">
+      <img class="blob" src="assets/blob58-e.svg" style="left:1220px;top:202px;width:268px">
+      <img class="blob" src="assets/blob58-c.svg" style="left:838px;top:695px;width:438px">
+      <img class="blob" src="assets/blob-bottomleft.svg" style="left:-140px;top:1002px;width:334px">
 
-      <div class="badge" style="left:94px;top:112.5px"><img src="assets/badge.svg"><span>3</span></div>
+      <div class="badge" style="left:94px;top:91px"><img src="assets/badge.svg"><span>3</span></div>
       <div class="wordmark">Kunstjakt</div>
       <div class="tagline">Bli med og få alle riktige!<br>Meld deg på i resepsjonen.</div>
       <button class="btn-start" id="btn-start">Start <img src="assets/arrow.svg"></button>
@@ -553,23 +553,23 @@
     <!-- ===================== TASK (Frame 59 / 70) ===================== -->
     <div id="task" class="screen">
       <!-- persistent badge -->
-      <div class="badge" style="left:78px;top:112.5px"><img src="assets/badge.svg"><span>3</span></div>
+      <div class="badge" style="left:78px;top:91px"><img src="assets/badge.svg"><span>3</span></div>
 
       <!-- welcome layer: what the user sees on login, before first touch -->
       <div id="welcome-layer">
-        <img class="blob" src="assets/welcome-pink-blob.svg" style="left:1207px;top:-32.2px;width:149px">
-        <img class="blob" src="assets/welcome-yellow-cluster.png" style="left:793px;top:211.5px;width:637px">
-        <img class="blob" src="assets/welcome-purple-star.svg" style="left:728px;top:280.7px;width:189px">
-        <img class="blob" src="assets/welcome-yellow-star.svg" style="left:917px;top:891.6px;width:330px">
+        <img class="blob" src="assets/welcome-pink-blob.svg" style="left:1207px;top:-26px;width:149px">
+        <img class="blob" src="assets/welcome-yellow-cluster.png" style="left:793px;top:171px;width:637px">
+        <img class="blob" src="assets/welcome-purple-star.svg" style="left:728px;top:227px;width:189px">
+        <img class="blob" src="assets/welcome-yellow-star.svg" style="left:917px;top:721px;width:330px">
         <div id="welcome-title">Hei, Kristine!</div>
         <div id="welcome-sub">Hold på den blå sirkelen for å få oppdraget ditt</div>
       </div>
 
       <!-- revealable content -->
       <div id="reveal">
-        <img class="blob" src="assets/blob59-topright.svg" style="left:1156px;top:-267.1px;width:444px">
-        <img class="blob" src="assets/blob59-bottom.svg" style="left:775px;top:1058.6px;width:438px">
-        <img class="blob" src="assets/blob-bottomleft.svg" style="left:-90px;top:801.4px;width:320px">
+        <img class="blob" src="assets/blob59-topright.svg" style="left:1156px;top:-216px;width:444px">
+        <img class="blob" src="assets/blob59-bottom.svg" style="left:775px;top:856px;width:438px">
+        <img class="blob" src="assets/blob-bottomleft.svg" style="left:-90px;top:648px;width:320px">
         <img id="painting" src="assets/painting.png">
         <div id="question"></div>
         <div id="options">
@@ -614,7 +614,7 @@
         <img class="x" src="assets/x-icon.svg">
       </div>
 
-      <div class="badge" style="left:78px;top:112.5px"><img src="assets/badge.svg"><span>3</span></div>
+      <div class="badge" style="left:78px;top:91px"><img src="assets/badge.svg"><span>3</span></div>
       <div id="result-title"></div>
       <div id="result-sub"></div>
 
@@ -701,19 +701,21 @@
   let statusTicker = null;
 
   // ---- Responsive scale ----
-  // Artboard is 1600x1113 (same ratio as the 1366x950 iPad Pro Safari viewport),
-  // so a single uniform scale fills the screen with no letterbox bands.
-  const STAGE_W = 1600, STAGE_H = 1113;
+  // Artboard is 1600x900 (16:9); a single uniform scale fits it to the display.
+  const STAGE_W = 1600, STAGE_H = 900;
   function fitStage() {
-    // visualViewport reflects Safari's actual usable area as the toolbar shows/hides.
+    // visualViewport reflects the browser's actual usable area (e.g. as a
+    // Safari toolbar shows/hides); fall back to the widest available metric and
+    // never apply a zero/NaN scale that would blank the stage.
     const vv = window.visualViewport;
-    const w = vv ? vv.width : window.innerWidth;
-    const h = vv ? vv.height : window.innerHeight;
-    const s = Math.min(w / STAGE_W, h / STAGE_H);
-    stage.style.setProperty("--s", s);
+    const w = Math.max(vv ? vv.width : 0, window.innerWidth || 0, document.documentElement.clientWidth || 0);
+    const h = Math.max(vv ? vv.height : 0, window.innerHeight || 0, document.documentElement.clientHeight || 0);
+    if (!w || !h) return;
+    stage.style.setProperty("--s", Math.min(w / STAGE_W, h / STAGE_H));
   }
   window.addEventListener("resize", fitStage);
   window.addEventListener("orientationchange", fitStage);
+  window.addEventListener("load", fitStage);
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", fitStage);
     window.visualViewport.addEventListener("scroll", fitStage);
