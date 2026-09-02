@@ -79,12 +79,16 @@
      be fighting over the same `transform`:
        .shape  layout position + per-screen size, transitioned on screen change
        .bob    slow vertical drift
-       .pulse  size pulse, on a different rhythm to the bob
-     Tune the four values below. */
+       .sway   slow horizontal drift, on a rhythm of its own
+       .pulse  size pulse, on yet another rhythm
+     The confetti pieces on the correct screen use the same three inner layers,
+     so they settle into the same resting animation as the shapes around them.
+     The values below are the starting points; the debug panel drives them. */
   :root {
     --move-dur: 900ms;                          /* screen-to-screen travel */
     --move-ease: cubic-bezier(0.45, 0, 0.25, 1);
     --bob-dist: 5px;                            /* vertical drift, each way */
+    --sway-dist: 2px;                           /* horizontal drift, each way */
     --pulse-min: 0.96;                          /* size pulse, 4% either way */
     --pulse-max: 1.04;
   }
@@ -105,20 +109,27 @@
   /* The countdown drift is driven frame by frame, so it must not also
      be easing towards each frame's target. */
   #shapes.drifting .shape { transition: none; }
-  .shape .bob, .shape .pulse { width: 100%; height: 100%; }
-  .shape img { width: 100%; height: 100%; display: block; }
+  .bob, .sway, .pulse { width: 100%; height: 100%; }
+  .shape img, .cshape img { width: 100%; height: 100%; display: block; }
 
-  /* Durations and negative delays are set per shape in the script, so no two
-     shapes — and neither of the two rhythms — stay in step. */
-  .shape .bob {
+  /* Durations and negative delays are set per element in the script, so no two
+     pieces — and none of the three rhythms — stay in step. */
+  .bob {
     animation: shapeBob var(--bob-dur, 7300ms) ease-in-out var(--bob-delay, 0ms) infinite;
   }
-  .shape .pulse {
+  .sway {
+    animation: shapeSway var(--sway-dur, 4000ms) ease-in-out var(--sway-delay, 0ms) infinite;
+  }
+  .pulse {
     animation: shapePulse var(--pulse-dur, 6200ms) ease-in-out var(--pulse-delay, 0ms) infinite;
   }
   @keyframes shapeBob {
     0%, 100% { transform: translateY(calc(var(--bob-dist) * -1)); }
     50%      { transform: translateY(var(--bob-dist)); }
+  }
+  @keyframes shapeSway {
+    0%, 100% { transform: translateX(calc(var(--sway-dist) * -1)); }
+    50%      { transform: translateX(var(--sway-dist)); }
   }
   @keyframes shapePulse {
     0%, 100% { transform: scale(var(--pulse-min)); }
@@ -183,7 +194,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .shape { transition: none; }
-    .shape .bob, .shape .pulse, .shape.vibrate .bob { animation: none; }
+    .bob, .sway, .pulse, .shape.vibrate .bob { animation: none; }
     #burst .cshape { opacity: 1; }
     #correct.play #burst .cshape { animation: none; transform: none; }
   }
@@ -271,11 +282,13 @@
   }
   #bar.visible { display: block; }
 
-  /* ---------- Profile lock-up (top right) ---------- */
+  /* ---------- Profile lock-up (top right) ----------
+     Both rows are right-aligned on x=1489 in the 1600-wide frame, so the block
+     hangs off the same 111px margin the page uses down the left-hand side. */
   #profile {
     position: absolute;
-    right: 33px;
-    top: 29px;
+    right: 111px;
+    top: 84px;
     display: none;
     flex-direction: column;
     align-items: flex-end;
@@ -284,14 +297,14 @@
   #profile .who {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 9px;
     height: 48px;
   }
-  #profile .avatar { width: 36px; height: 37.2px; display: block; }
+  #profile .avatar { width: 26px; height: 27px; display: block; }
   #profile .avatar svg { width: 100%; height: 100%; display: block; }
   #profile .name { font-size: 40px; line-height: 1.2; letter-spacing: -0.4px; }
   #profile .switch {
-    margin-top: 10px;
+    margin-top: 3px;
     font-size: 24px;
     line-height: 1.2;
     letter-spacing: -0.24px;
@@ -303,9 +316,12 @@
     background: none;
     border: 0;
     padding: 0;
-    text-decoration: underline;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     cursor: pointer;
   }
+  #profile .switch button img { width: 20px; height: 20px; display: block; }
 
   /* ---------- Idle / home ---------- */
   #wordmark {
@@ -410,6 +426,8 @@
     top: 50.2px;
     width: 61.3px;
     height: 81.16px;
+    /* The exported icon points downwards; turn it so the fingers face up. */
+    transform: rotate(180deg);
     pointer-events: none;
   }
   /* The label fades out as the task fades in, and back as it times out. */
@@ -469,6 +487,12 @@
     opacity: 0;
     transform-origin: center center;
   }
+  /* Until the burst plays the pieces are collapsed on the origin anyway, but
+     the resting animation would still be ticking; freeze it until then. */
+  #burst .bob, #burst .sway, #burst .pulse { animation-play-state: paused; }
+  #correct.play #burst .bob,
+  #correct.play #burst .sway,
+  #correct.play #burst .pulse { animation-play-state: running; }
   #correct.play #burst .cshape {
     animation: burstOut 820ms cubic-bezier(0.34, 1.32, 0.64, 1) var(--delay, 0ms) both;
   }
@@ -500,6 +524,8 @@
     top: 52px; right: 12px;
     z-index: 40;
     width: 300px;
+    max-height: calc(100vh - 76px);
+    overflow-y: auto;
     background: #1e2126;
     color: #eee;
     border-radius: 12px;
@@ -514,6 +540,7 @@
     font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
     color: #9aa; margin: 0 0 10px;
   }
+  #debug-panel label + h2 { margin-top: 18px; }
   #debug-panel label {
     display: flex; justify-content: space-between; align-items: center;
     gap: 8px; margin-bottom: 9px;
@@ -540,18 +567,18 @@
 
     <!-- ============ SHAPE LAYER (persistent across screens) ============ -->
     <div id="shapes">
-      <div class="shape" data-shape="squiggle-lilac"><div class="bob"><div class="pulse"><img src="assets/v2/shape-squiggle-lilac.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="outline"><div class="bob"><div class="pulse"><img src="assets/v2/shape-outline.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="splat-pink"><div class="bob"><div class="pulse"><img src="assets/v2/shape-splat-pink.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="splat-lilac"><div class="bob"><div class="pulse"><img src="assets/v2/shape-splat-lilac.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="wave-lightblue"><div class="bob"><div class="pulse"><img src="assets/v2/shape-wave-lightblue.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="wave-blue"><div class="bob"><div class="pulse"><img src="assets/v2/shape-wave-blue.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="wave-ghost"><div class="bob"><div class="pulse"><img src="assets/v2/shape-wave-ghost.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="curl-green"><div class="bob"><div class="pulse"><img src="assets/v2/shape-curl-green.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="curlbig-green"><div class="bob"><div class="pulse"><img src="assets/v2/shape-curlbig-green.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="pebble-lightblue"><div class="bob"><div class="pulse"><img src="assets/v2/shape-pebble-lightblue.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="pebble2-lightblue"><div class="bob"><div class="pulse"><img src="assets/v2/shape-pebble2-lightblue.svg" alt=""></div></div></div>
-      <div class="shape" data-shape="bottomleft"><div class="bob"><div class="pulse"><img src="assets/v2/shape-bottomleft.svg" alt=""></div></div></div>
+      <div class="shape" data-shape="squiggle-lilac"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-squiggle-lilac.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="outline"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-outline.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="splat-pink"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-splat-pink.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="splat-lilac"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-splat-lilac.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="wave-lightblue"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-wave-lightblue.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="wave-blue"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-wave-blue.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="wave-ghost"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-wave-ghost.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="curl-green"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-curl-green.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="curlbig-green"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-curlbig-green.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="pebble-lightblue"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-pebble-lightblue.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="pebble2-lightblue"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-pebble2-lightblue.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="bottomleft"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-bottomleft.svg" alt=""></div></div></div></div>
     </div>
 
     <!-- ===================== IDLE / HOME ===================== -->
@@ -613,56 +640,106 @@ Passer for barn fra 7-10 år</div>
       <div id="burst">
         <!-- Confetti. Each piece starts collapsed on the suspense shape's
              centre (799.5, 449.5) and flies out to its resting place; --sx/--sy
-             are the vector from that resting place back to the origin. Every
-             shape here is used on this screen only. -->
-        <img class="cshape" src="assets/v2/burst-pebble-lightblue.svg" alt=""
-             style="left:902px; top:172px; width:425px; height:416.18px;
-                    --sx:-315px; --sy:69.4px; --rot:-22deg; --delay:110ms">
-        <img class="cshape" src="assets/v2/burst-blob-yellow.svg" alt=""
-             style="left:1043px; top:279px; width:173px; height:168.4px;
-                    --sx:-330px; --sy:86.3px; --rot:40deg; --delay:160ms">
-        <img class="cshape" src="assets/v2/burst-star-yellow.svg" alt=""
-             style="left:1183px; top:523px; width:189.14px; height:184.42px;
-                    --sx:-478.1px; --sy:-165.7px; --rot:30deg; --delay:300ms">
-        <img class="cshape" src="assets/v2/burst-star-green.svg" alt=""
-             style="left:788px; top:180px; width:342px; height:334px;
+             are the vector from that resting place back to the origin. The
+             resting places form the cluster from the Figma frame, so the burst
+             settles into one tight pile rather than spreading to the edges, and
+             the extra pieces around the core keep the mix of sizes and
+             silhouettes varied. Listed back to front. -->
+        <div class="cshape"
+             style="left:640px; top:250px; width:260px; height:215.94px;
+                    --sx:29.5px; --sy:91.5px; --rot:-26deg; --delay:300ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-curlbig-green.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:1296px; top:148px; width:170px; height:165.80px;
+                    --sx:-581.5px; --sy:218.6px; --rot:36deg; --delay:340ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-pink.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:1276px; top:468px; width:190px; height:184.98px;
+                    --sx:-571.5px; --sy:-111.0px; --rot:-40deg; --delay:380ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-blob-blue.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:972px; top:574px; width:180px; height:176.28px;
+                    --sx:-262.5px; --sy:-212.6px; --rot:22deg; --delay:320ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-pebble2-lightblue.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:1378px; top:344px; width:150px; height:146.29px;
+                    --sx:-653.5px; --sy:32.4px; --rot:30deg; --delay:420ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-orange.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:626px; top:452px; width:170px; height:177.08px;
+                    --sx:88.5px; --sy:-91.0px; --rot:-34deg; --delay:360ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-bottomleft.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:694px; top:109px; width:629px; height:537.00px;
+                    --sx:-209.0px; --sy:72.0px; --rot:-18deg; --delay:60ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-squiggle-lilac.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:682px; top:518px; width:233px; height:242.60px;
+                    --sx:1.0px; --sy:-189.8px; --rot:34deg; --delay:240ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-splat-pink.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:1142px; top:98px; width:370px; height:385.25px;
+                    --sx:-527.5px; --sy:158.9px; --rot:-30deg; --delay:150ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-splat-lilac.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:902px; top:172px; width:425px; height:416.20px;
+                    --sx:-315.0px; --sy:69.4px; --rot:-22deg; --delay:110ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-pebble-lightblue.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:1043px; top:279px; width:173px; height:168.43px;
+                    --sx:-330.0px; --sy:86.3px; --rot:40deg; --delay:160ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-blob-yellow.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:1183px; top:523px; width:189px; height:184.33px;
+                    --sx:-478.0px; --sy:-165.7px; --rot:30deg; --delay:300ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-yellow.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:788px; top:180px; width:342px; height:334.05px;
                     --sx:-159.5px; --sy:102.5px; --rot:26deg; --delay:70ms">
-        <img class="cshape" src="assets/v2/burst-cloud.png" alt=""
-             style="left:837px; top:318px; width:400.38px; height:324.33px;
-                    --sx:-237.7px; --sy:-30.7px; --rot:-14deg; --delay:0ms">
-        <img class="cshape" src="assets/v2/burst-star-blue.svg" alt=""
-             style="left:820px; top:511px; width:189.14px; height:184.42px;
-                    --sx:-115.1px; --sy:-153.7px; --rot:-34deg; --delay:200ms">
-        <img class="cshape" src="assets/v2/burst-blob-pink.svg" alt=""
-             style="left:648px; top:430px; width:90px; height:87.62px;
-                    --sx:106.5px; --sy:-24.3px; --rot:44deg; --delay:230ms">
-        <img class="cshape" src="assets/v2/burst-blob-green.svg" alt=""
-             style="left:968px; top:58px; width:94px; height:91.51px;
-                    --sx:-215.5px; --sy:345.7px; --rot:-30deg; --delay:260ms">
-        <img class="cshape" src="assets/v2/burst-star-lilac.svg" alt=""
-             style="left:690px; top:120px; width:98px; height:95.58px;
-                    --sx:60.5px; --sy:281.7px; --rot:38deg; --delay:280ms">
-        <img class="cshape" src="assets/v2/burst-blob-blue.svg" alt=""
-             style="left:1130px; top:706px; width:108px; height:105.14px;
-                    --sx:-384.5px; --sy:-309.1px; --rot:-46deg; --delay:320ms">
-        <img class="cshape" src="assets/v2/burst-star-darkgreen.svg" alt=""
-             style="left:628px; top:648px; width:118px; height:115.08px;
-                    --sx:112.5px; --sy:-256px; --rot:-24deg; --delay:340ms">
-        <img class="cshape" src="assets/v2/burst-star-lightblue.svg" alt=""
-             style="left:1232px; top:72px; width:108px; height:105.33px;
-                    --sx:-486.5px; --sy:324.8px; --rot:34deg; --delay:360ms">
-        <img class="cshape" src="assets/v2/burst-blob-lilac.svg" alt=""
-             style="left:1305px; top:110px; width:112px; height:109.04px;
-                    --sx:-561.5px; --sy:285px; --rot:-38deg; --delay:380ms">
-        <img class="cshape" src="assets/v2/burst-pebble-lilac.svg" alt=""
-             style="left:1338px; top:556px; width:156px; height:152.77px;
-                    --sx:-616.5px; --sy:-182.9px; --rot:20deg; --delay:400ms">
-        <img class="cshape" src="assets/v2/burst-star-pink.svg" alt=""
-             style="left:1395px; top:190px; width:130px; height:126.78px;
-                    --sx:-660.5px; --sy:196.1px; --rot:-42deg; --delay:430ms">
-        <img class="cshape" src="assets/v2/burst-star-orange.svg" alt=""
-             style="left:1430px; top:395px; width:124px; height:120.93px;
-                    --sx:-692.5px; --sy:-6px; --rot:28deg; --delay:460ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-green.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:837px; top:318px; width:400px; height:324.02px;
+                    --sx:-237.5px; --sy:-30.5px; --rot:-14deg; --delay:0ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-cloud.png" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:820px; top:511px; width:189px; height:184.33px;
+                    --sx:-115.0px; --sy:-153.7px; --rot:-34deg; --delay:200ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-blue.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:940px; top:96px; width:110px; height:107.28px;
+                    --sx:-195.5px; --sy:299.9px; --rot:-28deg; --delay:400ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-darkgreen.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:1262px; top:306px; width:100px; height:97.36px;
+                    --sx:-512.5px; --sy:94.8px; --rot:44deg; --delay:440ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-blob-pink.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:905px; top:372px; width:92px; height:89.72px;
+                    --sx:-151.5px; --sy:32.6px; --rot:38deg; --delay:460ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-lightblue.svg" alt=""></div></div></div>
+        </div>
+        <div class="cshape"
+             style="left:742px; top:566px; width:85px; height:82.75px;
+                    --sx:15.0px; --sy:-157.9px; --rot:-46deg; --delay:480ms">
+          <div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-blob-lilac.svg" alt=""></div></div></div>
+        </div>
       </div>
       <div class="t t-display" style="left:111px;top:231px;width:760px">Herlig,</div>
       <span class="avatar" data-avatar style="position:absolute;left:111px;top:354px;width:60px;height:62px"></span>
@@ -688,8 +765,8 @@ Passer for barn fra 7-10 år</div>
         <circle cx="81.51" cy="81.51" r="80.51" fill="#F39327" stroke="#1E1E1D" stroke-width="2"/>
       </svg>
       <svg id="hold-label" viewBox="0 0 163.02 163.02" xmlns="http://www.w3.org/2000/svg">
-        <path id="hold-arc" fill="none" d="M 21.5,81.5 A 60,60 0 0 1 141.5,81.5"/>
-        <text><textPath href="#hold-arc" startOffset="10%">Hold</textPath></text>
+        <path id="hold-arc" fill="none" d="M 31.5,81.5 A 50,50 0 0 1 131.5,81.5"/>
+        <text text-anchor="middle"><textPath href="#hold-arc" startOffset="50%">Hold</textPath></text>
       </svg>
       <img id="hold-hand" src="assets/v2/hold-hand.svg" alt="">
     </div>
@@ -699,7 +776,7 @@ Passer for barn fra 7-10 år</div>
         <span class="avatar" data-avatar></span>
         <span class="name" data-username>Kristine</span>
       </div>
-      <div class="switch">Er det ikke deg? <button type="button" id="btn-switch-user">Bytt bruker</button></div>
+      <div class="switch"><button type="button" id="btn-switch-user">Ikke deg? <img src="assets/v2/icon-arrow-right.svg" alt=""></button></div>
     </div>
 
     <div id="bar"></div>
@@ -718,6 +795,13 @@ Passer for barn fra 7-10 år</div>
   <label>Spenning / loader (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
   <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="5" min="1" step="1"></label>
   <label>Utlogging ved inaktivitet (s)<input type="number" id="cfg-logout" value="15" min="5" step="5"></label>
+  <h2>Hvileanimasjon</h2>
+  <label>Størrelsesendring (%)<input type="number" id="cfg-rest-scale" value="4" min="0" step="1"></label>
+  <label>Størrelse, syklus (ms)<input type="number" id="cfg-rest-scale-ms" value="6200" min="100" step="100"></label>
+  <label>Bevegelse x-akse (px)<input type="number" id="cfg-rest-x" value="2" min="0" step="1"></label>
+  <label>x-akse, syklus (ms)<input type="number" id="cfg-rest-x-ms" value="4000" min="100" step="100"></label>
+  <label>Bevegelse y-akse (px)<input type="number" id="cfg-rest-y" value="5" min="0" step="1"></label>
+  <label>y-akse, syklus (ms)<input type="number" id="cfg-rest-y-ms" value="7300" min="100" step="100"></label>
   <div id="debug-note">Gyldige koder: <b>323</b> (Kristine), <b>118</b> (Jonas), <b>764</b> (Amina), <b>905</b> (Theo). Alt annet gir feilskjermen.</div>
   <div id="debug-status"></div>
 </div>
@@ -793,13 +877,12 @@ Passer for barn fra 7-10 år</div>
       "bottomleft":       [-140, 1002.88, 334.18, 348.15]
     },
     correct: {
-      // splat-lilac is deliberately absent, so it stays parked out of view: it
-      // shows up on other screens, and the confetti is made only of shapes
-      // unique to this one. The suspense shape collapses onto the burst origin,
-      // so the confetti appears to fly out of it.
-      "squiggle-lilac":   [799.5, 449.5, 1, 0.85],
-      "wave-ghost":       [338, 970, 438.45, 374.35],
-      "bottomleft":       [-140, 1002.88, 334.18, 348.15]
+      // The whole screen belongs to the confetti, so every standard shape stays
+      // out of frame — including the two that sit just off the bottom edge on
+      // every other screen. The suspense shape is cut straight up out of view at
+      // the size it was vibrating at (see the instant placement in showScreen),
+      // so it is simply gone the moment the confetti bursts out of where it was.
+      "squiggle-lilac":   [601, -420, 397, 339]
     },
     wrong: {
       "wave-ghost":       [338, 970, 438.45, 374.35],
@@ -871,6 +954,13 @@ Passer for barn fra 7-10 år</div>
   let SUSPENSE_MS = 2500;
   let RESULT_DISPLAY_MS = 5000;
   let LOGOUT_MS = 15000;
+  /* Resting animation, shared by the shapes and the confetti. */
+  let REST_SCALE_PCT = 4;
+  let REST_SCALE_MS = 6200;
+  let REST_X_PX = 2;
+  let REST_X_MS = 4000;
+  let REST_Y_PX = 5;
+  let REST_Y_MS = 7300;
 
   /* ---- Elements ---- */
   const stage = document.getElementById("stage");
@@ -909,6 +999,12 @@ Passer for barn fra 7-10 år</div>
   const cfgSuspense = document.getElementById("cfg-suspense");
   const cfgResult = document.getElementById("cfg-result");
   const cfgLogout = document.getElementById("cfg-logout");
+  const cfgRestScale = document.getElementById("cfg-rest-scale");
+  const cfgRestScaleMs = document.getElementById("cfg-rest-scale-ms");
+  const cfgRestX = document.getElementById("cfg-rest-x");
+  const cfgRestXMs = document.getElementById("cfg-rest-x-ms");
+  const cfgRestY = document.getElementById("cfg-rest-y");
+  const cfgRestYMs = document.getElementById("cfg-rest-y-ms");
   const debugStatus = document.getElementById("debug-status");
 
   /* ---- State ---- */
@@ -952,8 +1048,17 @@ Passer for barn fra 7-10 år</div>
     SUSPENSE_MS = Math.max(0, Number(cfgSuspense.value) || 0);
     RESULT_DISPLAY_MS = Math.max(1, Number(cfgResult.value) || 1) * 1000;
     LOGOUT_MS = Math.max(5, Number(cfgLogout.value) || 5) * 1000;
+
+    REST_SCALE_PCT = Math.max(0, Number(cfgRestScale.value) || 0);
+    REST_SCALE_MS = Math.max(100, Number(cfgRestScaleMs.value) || 100);
+    REST_X_PX = Math.max(0, Number(cfgRestX.value) || 0);
+    REST_X_MS = Math.max(100, Number(cfgRestXMs.value) || 100);
+    REST_Y_PX = Math.max(0, Number(cfgRestY.value) || 0);
+    REST_Y_MS = Math.max(100, Number(cfgRestYMs.value) || 100);
+    applyRestingAnimation();
   }
-  [cfgInitWait, cfgFadeIn, cfgGrace, cfgFadeout, cfgSuspense, cfgResult, cfgLogout]
+  [cfgInitWait, cfgFadeIn, cfgGrace, cfgFadeout, cfgSuspense, cfgResult, cfgLogout,
+   cfgRestScale, cfgRestScaleMs, cfgRestX, cfgRestXMs, cfgRestY, cfgRestYMs]
     .forEach(function (i) { i.addEventListener("change", readConfig); });
   debugToggle.addEventListener("click", function () { debugPanel.classList.toggle("open"); });
 
@@ -962,19 +1067,45 @@ Passer for barn fra 7-10 år</div>
   // screen change tweens one transform rather than animating width/height.
   const SHAPE_BASE = {};
   function initShapes() {
-    let i = 0;
     Object.keys(shapeEls).forEach(function (name) {
       const el = shapeEls[name];
       SHAPE_BASE[name] = [PARK[name][2], PARK[name][3]];
       el.style.width = SHAPE_BASE[name][0] + "px";
       el.style.height = SHAPE_BASE[name][1] + "px";
-      // Different periods for bob and pulse, and a different pair per shape, so
-      // nothing beats in unison. Negative delays start each one mid-cycle.
-      el.style.setProperty("--bob-dur", (7300 + i * 430) + "ms");
-      el.style.setProperty("--pulse-dur", (6200 + i * 310) + "ms");
-      el.style.setProperty("--bob-delay", (-i * 620) + "ms");
-      el.style.setProperty("--pulse-delay", (-i * 470) + "ms");
-      i++;
+    });
+  }
+
+  /* ================= Resting animation =================
+     Every shape and every confetti piece drifts vertically, drifts sideways and
+     pulses in size, each on its own period. The periods are stretched a little
+     further apart with every element so nothing beats in unison, and negative
+     delays drop each one in mid-cycle. The debug panel owns the base numbers,
+     so this runs again whenever they change. */
+  // The periods fan out with the index and then wrap, so the whole set stays
+  // within a narrow band of the configured value however many pieces there are.
+  const RESTING_SPREAD = [
+    { step: 0.06,  wrap: 7 },   // bob
+    { step: 0.055, wrap: 8 },   // sway
+    { step: 0.05,  wrap: 9 }    // pulse
+  ];
+  function applyRestingAnimation() {
+    const root = document.documentElement.style;
+    root.setProperty("--bob-dist", REST_Y_PX + "px");
+    root.setProperty("--sway-dist", REST_X_PX + "px");
+    root.setProperty("--pulse-min", String(1 - REST_SCALE_PCT / 100));
+    root.setProperty("--pulse-max", String(1 + REST_SCALE_PCT / 100));
+
+    const els = Array.prototype.slice.call(document.querySelectorAll(".shape, .cshape"));
+    els.forEach(function (el, i) {
+      const bob = REST_Y_MS * (1 + (i % RESTING_SPREAD[0].wrap) * RESTING_SPREAD[0].step);
+      const sway = REST_X_MS * (1 + (i % RESTING_SPREAD[1].wrap) * RESTING_SPREAD[1].step);
+      const pulse = REST_SCALE_MS * (1 + (i % RESTING_SPREAD[2].wrap) * RESTING_SPREAD[2].step);
+      el.style.setProperty("--bob-dur", Math.round(bob) + "ms");
+      el.style.setProperty("--sway-dur", Math.round(sway) + "ms");
+      el.style.setProperty("--pulse-dur", Math.round(pulse) + "ms");
+      el.style.setProperty("--bob-delay", Math.round(-bob * ((i * 0.37) % 1)) + "ms");
+      el.style.setProperty("--sway-delay", Math.round(-sway * ((i * 0.61) % 1)) + "ms");
+      el.style.setProperty("--pulse-delay", Math.round(-pulse * ((i * 0.23) % 1)) + "ms");
     });
   }
 
@@ -1044,7 +1175,7 @@ Passer for barn fra 7-10 år</div>
     hei:       { shapes: "hei",        bar: true,  profile: true,  hold: true,  drift: true },
     task:      { shapes: "taskfind",   bar: true,  profile: true,  hold: true,  drift: true },
     suspense:  { shapes: "suspense",   bar: false, profile: false, hold: false, drift: false },
-    correct:   { shapes: "correct",    bar: true,  profile: false, hold: false, drift: true },
+    correct:   { shapes: "correct",    bar: true,  profile: false, hold: false, drift: false },
     wrong:     { shapes: "wrong",      bar: true,  profile: true,  hold: false, drift: true }
   };
 
@@ -1054,8 +1185,10 @@ Passer for barn fra 7-10 år</div>
 
   function showScreen(id, shapeKeyOverride) {
     const chrome = CHROME[id];
-    // Shapes travel to their new positions while the screen content cross-fades.
-    placeShapes(shapeKeyOverride || chrome.shapes, current === null);
+    // Shapes travel to their new positions while the screen content cross-fades
+    // — except onto the correct screen, where the vibrating shape has to vanish
+    // rather than be seen sliding off the top.
+    placeShapes(shapeKeyOverride || chrome.shapes, current === null || id === "correct");
     const hero = shapeEls[SUSPENSE_SHAPE];
     hero.style.setProperty("--vib-dur", SUSPENSE_MS + "ms");
     hero.classList.toggle("vibrate", id === "suspense");
@@ -1372,6 +1505,7 @@ Passer for barn fra 7-10 år</div>
 
   /* ================= Boot ================= */
   initShapes();
+  applyRestingAnimation();
   resetCode();
   showScreen("idle");
 })();
