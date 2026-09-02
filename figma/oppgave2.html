@@ -5,6 +5,17 @@
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Kunstjakten – oppgave 2, melkeglasset (16:9)</title>
+
+<!-- Google Analytics, for the test runs of this prototype. Every screen but
+     the idle one posts a bare event; see trackScreen() below. -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LTMK9XZ126"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag("js", new Date());
+  gtag("config", "G-LTMK9XZ126");
+</script>
+
 <style>
   :root {
     /* Visual toolbox — colours straight from the Figma file */
@@ -1206,6 +1217,26 @@ Passer for barn fra 7-10 år</div>
     holdZone.style.display = chrome.hold ? "block" : "none";
     if (!chrome.bar) hideBar();
     current = id;
+    trackScreen(id);
+  }
+
+  /* ================= Analytics =================
+     One event per screen, named after the screen itself. The idle screen is
+     left out: it is where every session starts and ends, so counting it would
+     say nothing about how far anyone got. Guarded, so the prototype still runs
+     with the tag blocked or offline. */
+  const SCREEN_EVENTS = {
+    login:     "screen_login",
+    loginfail: "screen_loginfail",
+    hei:       "screen_hei",
+    task:      "screen_task",
+    suspense:  "screen_suspense",
+    correct:   "screen_correct",
+    wrong:     "screen_wrong"
+  };
+  function trackScreen(id) {
+    const name = SCREEN_EVENTS[id];
+    if (name && typeof window.gtag === "function") window.gtag("event", name);
   }
 
   /* ================= Profile / avatar ================= */
