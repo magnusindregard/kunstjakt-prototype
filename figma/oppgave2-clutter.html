@@ -857,10 +857,10 @@ Passer for barn fra 7-10 år</div>
   <h2>Timeout-mekanikk</h2>
   <label>Inaktivitet før nedtelling (s)<input type="number" id="cfg-init-wait" value="10" min="0" step="1"></label>
   <label>Fade inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
-  <label>Ventetid før nedtoning (s)<input type="number" id="cfg-grace" value="1" min="0" step="1"></label>
+  <label>Ventetid før nedtoning (s)<input type="number" id="cfg-grace" value="3" min="0" step="1"></label>
   <label>Nedtoning, varighet (s)<input type="number" id="cfg-fadeout" value="3" min="1" step="1"></label>
   <label>Spenning / loader (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
-  <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="5" min="1" step="1"></label>
+  <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="3" min="1" step="1"></label>
   <label>Utlogging ved inaktivitet (s)<input type="number" id="cfg-logout" value="15" min="5" step="5"></label>
   <h2>Rot-animasjon</h2>
   <label>Rot inn (ms)<input type="number" id="cfg-clutter-in" value="560" min="0" step="20"></label>
@@ -1140,10 +1140,10 @@ Passer for barn fra 7-10 år</div>
   /* ---- Config ---- */
   let INIT_WAIT_MS = 10000;
   let FADE_IN_MS = 400;
-  let GRACE_MS = 1000;
+  let GRACE_MS = 3000;
   let FADE_OUT_MS = 3000;
   let SUSPENSE_MS = 2500;
-  let RESULT_DISPLAY_MS = 5000;
+  let RESULT_DISPLAY_MS = 3000;
   let LOGOUT_MS = 15000;
   /* Countdown clutter. */
   let CLUTTER_IN_MS = 560;
