@@ -1362,10 +1362,19 @@ Passer for barn fra 7-10 år</div>
     });
   }
 
-  function placeShapes(layoutKey, instant) {
-    // A screen change always wins over the clutter: whatever it was doing, the
+  function placeShapes(layoutKey, instant, keepClutter) {
+    // A screen change normally wins over the clutter: whatever it was doing, the
     // per-shape timings go back to the screen-to-screen ones before we move.
-    dropClutter();
+    //
+    // keepClutter is the exception, and it exists for the one screen change that
+    // *is* a clutter exit. Holding the circle on the greeting both opens the task
+    // and sends the pile away; those are one gesture, but two calls, and dropping
+    // the clutter in between handed the departure back to the slow
+    // screen-to-screen ease — so the press felt dead on the greeting while the
+    // task screen, which changes no screen at all, left fast. The caller runs
+    // exitClutter() straight after; this pass only records where the pile is
+    // headed, and that call is what moves it.
+    if (!keepClutter) dropClutter();
     currentShapeKey = layoutKey;
     if (instant) shapeLayer.classList.add("no-move");
     applyShapes();
@@ -1629,12 +1638,12 @@ Passer for barn fra 7-10 år</div>
   // confetti bursts out of.
   const SUSPENSE_SHAPE = "squiggle-lilac";
 
-  function showScreen(id, shapeKeyOverride) {
+  function showScreen(id, shapeKeyOverride, keepClutter) {
     const chrome = CHROME[id];
     // Shapes travel to their new positions while the screen content cross-fades
     // — except onto the correct screen, where the vibrating shape has to vanish
     // rather than be seen sliding off the top.
-    placeShapes(shapeKeyOverride || chrome.shapes, current === null || id === "correct");
+    placeShapes(shapeKeyOverride || chrome.shapes, current === null || id === "correct", keepClutter);
     const hero = shapeEls[SUSPENSE_SHAPE];
     hero.style.setProperty("--vib-dur", SUSPENSE_MS + "ms");
     hero.classList.toggle("vibrate", id === "suspense");
@@ -1827,8 +1836,10 @@ Passer for barn fra 7-10 år</div>
     readConfig();
     holding = true;
     holdZone.classList.add("active");
-    exitClutter(); // the pile goes back out the way it came
-
+    // Destination first, departure second. showScreen() is told to keep the
+    // clutter alive as it passes through, so exitClutter() below still has a
+    // pile to send away — and sends it away on the fast clutter-out curve
+    // rather than the screen-to-screen one. See placeShapes().
     if (current !== "task") {
       visits += 1;
       isAnswerMode = (visits % 2 === 0); // 1st visit: find it; 2nd: answer it
@@ -1836,8 +1847,9 @@ Passer for barn fra 7-10 år</div>
       taskScreen.classList.toggle("find-mode", !isAnswerMode);
       qFind.textContent = QUESTION_FIND;
       qAnswer.textContent = QUESTION_ANSWER;
-      showScreen("task", isAnswerMode ? "taskanswer" : "taskfind");
+      showScreen("task", isAnswerMode ? "taskanswer" : "taskfind", true);
     }
+    exitClutter(); // the pile goes back out the way it came, at full speed
     fadeTask(1, FADE_IN_MS, "auto");
     setHoldLabel(0, FADE_IN_MS);
   }
