@@ -855,12 +855,14 @@ Passer for barn fra 7-10 år</div>
 <button id="debug-toggle" title="Innstillinger">⚙</button>
 <div id="debug-panel">
   <h2>Timeout-mekanikk</h2>
-  <label>Fade inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
-  <label>Ventetid før nedtoning (s)<input type="number" id="cfg-grace" value="3" min="0" step="1"></label>
-  <label>Nedtoning, varighet (s)<input type="number" id="cfg-fadeout" value="3" min="1" step="1"></label>
-  <label>Spenning / loader (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
-  <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="5" min="1" step="1"></label>
-  <label>Utlogging ved inaktivitet (s)<input type="number" id="cfg-logout" value="15" min="5" step="5"></label>
+  <label>Oppgaven toner inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
+  <label>Ventetid før oppgaven toner ut (s)<input type="number" id="cfg-grace" value="3" min="0" step="1"></label>
+  <label>Oppgaven toner ut (s)<input type="number" id="cfg-fadeout" value="3" min="1" step="1"></label>
+  <label>Spenningspause (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
+  <label>Utlogging ved inaktivitet - loginskjermer (s)<input type="number" id="cfg-logout-login" value="15" min="5" step="5"></label>
+  <label>Utlogging ved inaktivitet - greeting (s)<input type="number" id="cfg-logout-greeting" value="15" min="5" step="5"></label>
+  <label>Utlogging ved inaktivitet - svarskjerm (s)<input type="number" id="cfg-logout-answer" value="15" min="5" step="5"></label>
+  <label>Utlogging ved inaktivitet - resultatskjerm (s)<input type="number" id="cfg-result" value="5" min="1" step="1"></label>
   <h2>Clutter-animasjon</h2>
   <label>Clutter inn (ms)<input type="number" id="cfg-clutter-in" value="560" min="0" step="20"></label>
   <label>Clutter ut (ms)<input type="number" id="cfg-clutter-out" value="300" min="0" step="20"></label>
@@ -1142,7 +1144,9 @@ Passer for barn fra 7-10 år</div>
   let FADE_OUT_MS = 3000;
   let SUSPENSE_MS = 2500;
   let RESULT_DISPLAY_MS = 5000;
-  let LOGOUT_MS = 15000;
+  let LOGOUT_LOGIN_MS = 15000;
+  let LOGOUT_GREETING_MS = 15000;
+  let LOGOUT_ANSWER_MS = 15000;
   /* Countdown clutter. */
   let CLUTTER_IN_MS = 560;
   let CLUTTER_OUT_MS = 300;
@@ -1193,7 +1197,9 @@ Passer for barn fra 7-10 år</div>
   const cfgFadeout = document.getElementById("cfg-fadeout");
   const cfgSuspense = document.getElementById("cfg-suspense");
   const cfgResult = document.getElementById("cfg-result");
-  const cfgLogout = document.getElementById("cfg-logout");
+  const cfgLogoutLogin = document.getElementById("cfg-logout-login");
+  const cfgLogoutGreeting = document.getElementById("cfg-logout-greeting");
+  const cfgLogoutAnswer = document.getElementById("cfg-logout-answer");
   const cfgClutterIn = document.getElementById("cfg-clutter-in");
   const cfgClutterOut = document.getElementById("cfg-clutter-out");
   const cfgClutterStagger = document.getElementById("cfg-clutter-stagger");
@@ -1246,7 +1252,9 @@ Passer for barn fra 7-10 år</div>
     FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1) * 1000;
     SUSPENSE_MS = Math.max(0, Number(cfgSuspense.value) || 0);
     RESULT_DISPLAY_MS = Math.max(1, Number(cfgResult.value) || 1) * 1000;
-    LOGOUT_MS = Math.max(5, Number(cfgLogout.value) || 5) * 1000;
+    LOGOUT_LOGIN_MS = Math.max(5, Number(cfgLogoutLogin.value) || 5) * 1000;
+    LOGOUT_GREETING_MS = Math.max(5, Number(cfgLogoutGreeting.value) || 5) * 1000;
+    LOGOUT_ANSWER_MS = Math.max(5, Number(cfgLogoutAnswer.value) || 5) * 1000;
 
     CLUTTER_IN_MS = Math.max(0, Number(cfgClutterIn.value) || 0);
     CLUTTER_OUT_MS = Math.max(0, Number(cfgClutterOut.value) || 0);
@@ -1262,7 +1270,7 @@ Passer for barn fra 7-10 år</div>
     REST_Y_MS = Math.max(100, Number(cfgRestYMs.value) || 100);
     applyRestingAnimation();
   }
-  [cfgFadeIn, cfgGrace, cfgFadeout, cfgSuspense, cfgResult, cfgLogout,
+  [cfgFadeIn, cfgGrace, cfgFadeout, cfgSuspense, cfgResult, cfgLogoutLogin, cfgLogoutGreeting, cfgLogoutAnswer,
    cfgClutterIn, cfgClutterOut, cfgClutterStagger, cfgClutterDelay, cfgAttractMs,
    cfgRestScale, cfgRestScaleMs, cfgRestX, cfgRestXMs, cfgRestY, cfgRestYMs]
     .forEach(function (i) { i.addEventListener("change", readConfig); });
@@ -1626,7 +1634,7 @@ Passer for barn fra 7-10 år</div>
   document.getElementById("btn-start").addEventListener("click", function () {
     resetCode();
     showScreen("login");
-    armLogout();
+    armLogout("login");
   });
 
   /* ================= Login ================= */
@@ -1657,7 +1665,7 @@ Passer for barn fra 7-10 år</div>
     codeDigits.innerHTML = html;
   }
   function onKey(key) {
-    armLogout();
+    armLogout("login");
     if (key === "back") {
       code = code.slice(0, -1);
       renderCode();
@@ -1678,13 +1686,13 @@ Passer for barn fra 7-10 år</div>
       enterGreeting();
     } else {
       showScreen("loginfail");
-      armLogout();
+      armLogout("login");
     }
   }
   document.getElementById("btn-retry-code").addEventListener("click", function () {
     resetCode();
     showScreen("login");
-    armLogout();
+    armLogout("login");
   });
 
   /* ================= Greeting (logged in, resting) ================= */
@@ -1702,7 +1710,7 @@ Passer for barn fra 7-10 år</div>
     greetSub.textContent = GREET_FIRST;
     setHoldLabel(1, 0);
     showScreen("hei");
-    armLogout();
+    armLogout("greeting");
     // The greeting's countdown starts with the screen, so the pile does too:
     // this is the user's first sight of the mechanic, on a screen where it
     // costs them nothing.
@@ -1727,7 +1735,7 @@ Passer for barn fra 7-10 år</div>
     taskLayer.style.pointerEvents = "auto";
     setHoldLabel(0, 0);
     showScreen("task", "taskanswer");
-    armLogout();
+    armLogout("answer");
     clutterAfterDelay(true);
     startStatusTicker();
   }
@@ -1865,13 +1873,17 @@ Passer for barn fra 7-10 år</div>
     clearLogout();
   }
   // Inactivity logout. The bar visualises whatever countdown currently owns the
-  // screen, so re-arming the timer restarts it too.
-  function armLogout() {
+  // screen, so re-arming the timer restarts it too. Each screen family carries
+  // its own length, so the keypad can be patient where the greeting is not.
+  function armLogout(which) {
     clearLogout();
     readConfig();
-    logoutEndsAt = Date.now() + LOGOUT_MS;
-    logoutTimer = window.setTimeout(logout, LOGOUT_MS);
-    if (CHROME[current] && CHROME[current].bar) startBar(LOGOUT_MS);
+    const ms = which === "greeting" ? LOGOUT_GREETING_MS
+             : which === "answer" ? LOGOUT_ANSWER_MS
+             : LOGOUT_LOGIN_MS;
+    logoutEndsAt = Date.now() + ms;
+    logoutTimer = window.setTimeout(logout, ms);
+    if (CHROME[current] && CHROME[current].bar) startBar(ms);
   }
   function clearLogout() {
     if (logoutTimer) { window.clearTimeout(logoutTimer); logoutTimer = null; }
