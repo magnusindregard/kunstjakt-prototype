@@ -1502,18 +1502,23 @@ Passer for barn fra 7-10 år</div>
   }
 
   /* The answer screen gets a head start: the options are what the user came
-     back for, so the pile waits before burying them, and the orange circle
-     waits with it — there is nothing to clear yet, and an idle circle only
-     pulls the eye off the options. Every other screen clutters at once. */
+     back for, so the pile waits before burying them, and every wait on that
+     screen is the same length. Every other screen clutters at once.
+
+     `hideCircle` is for the arrival only, where nothing is counting the screen
+     down: there is nothing to clear yet, and an idle circle would only pull the
+     eye off the options. Once a fade-out is running, the circle is what stops
+     it — hiding it there would take away the one way to hold the screen open,
+     and holding it open has to keep working however many times it is used. */
   let clutterDelayTimer = null;
-  function clutterAfterDelay() {
+  function clutterAfterDelay(hideCircle) {
     cancelClutterDelay();
     readConfig();
     if (current !== "task" || !isAnswerMode || ANSWER_CLUTTER_DELAY_MS <= 0) {
       enterClutter();
       return;
     }
-    holdZone.classList.add("waiting");
+    if (hideCircle) holdZone.classList.add("waiting");
     clutterDelayTimer = window.setTimeout(function () {
       clutterDelayTimer = null;
       holdZone.classList.remove("waiting");
@@ -1727,7 +1732,7 @@ Passer for barn fra 7-10 år</div>
     setHoldLabel(0, 0);
     showScreen("task", "taskanswer");
     armLogout();
-    clutterAfterDelay();
+    clutterAfterDelay(true);
     startStatusTicker();
   }
 
@@ -1772,7 +1777,7 @@ Passer for barn fra 7-10 år</div>
     graceEndsAt = Date.now() + GRACE_MS;
     graceTimer = window.setTimeout(startFadeOut, GRACE_MS);
     startBar(GRACE_MS + FADE_OUT_MS);
-    clutterAfterDelay();
+    clutterAfterDelay(false);
   }
 
   function startFadeOut() {
@@ -1850,7 +1855,7 @@ Passer for barn fra 7-10 år</div>
     startBar(GRACE_MS + FADE_OUT_MS);
     graceEndsAt = Date.now() + GRACE_MS;
     graceTimer = window.setTimeout(startFadeOut, GRACE_MS);
-    clutterAfterDelay();
+    clutterAfterDelay(false);
   }
 
   /* ================= Timers ================= */
