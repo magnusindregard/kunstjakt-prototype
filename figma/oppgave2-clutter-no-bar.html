@@ -841,7 +841,6 @@ Passer for barn fra 7-10 år</div>
 <button id="debug-toggle" title="Innstillinger">⚙</button>
 <div id="debug-panel">
   <h2>Timeout-mekanikk</h2>
-  <label>Inaktivitet før nedtelling (s)<input type="number" id="cfg-init-wait" value="10" min="0" step="1"></label>
   <label>Fade inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
   <label>Ventetid før nedtoning (s)<input type="number" id="cfg-grace" value="3" min="0" step="1"></label>
   <label>Nedtoning, varighet (s)<input type="number" id="cfg-fadeout" value="3" min="1" step="1"></label>
@@ -1124,7 +1123,6 @@ Passer for barn fra 7-10 år</div>
   const QUESTION_ANSWER = QUESTION;
 
   /* ---- Config ---- */
-  let INIT_WAIT_MS = 10000;
   let FADE_IN_MS = 400;
   let GRACE_MS = 3000;
   let FADE_OUT_MS = 3000;
@@ -1175,7 +1173,6 @@ Passer for barn fra 7-10 år</div>
 
   const debugToggle = document.getElementById("debug-toggle");
   const debugPanel = document.getElementById("debug-panel");
-  const cfgInitWait = document.getElementById("cfg-init-wait");
   const cfgFadeIn = document.getElementById("cfg-fade-in");
   const cfgGrace = document.getElementById("cfg-grace");
   const cfgFadeout = document.getElementById("cfg-fadeout");
@@ -1228,7 +1225,6 @@ Passer for barn fra 7-10 år</div>
 
   /* ================= Config ================= */
   function readConfig() {
-    INIT_WAIT_MS = Math.max(0, Number(cfgInitWait.value) || 0) * 1000;
     FADE_IN_MS = Math.max(0, Number(cfgFadeIn.value) || 0);
     GRACE_MS = Math.max(0, Number(cfgGrace.value) || 0) * 1000;
     FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1) * 1000;
@@ -1250,7 +1246,7 @@ Passer for barn fra 7-10 år</div>
     REST_Y_MS = Math.max(100, Number(cfgRestYMs.value) || 100);
     applyRestingAnimation();
   }
-  [cfgInitWait, cfgFadeIn, cfgGrace, cfgFadeout, cfgSuspense, cfgResult, cfgLogout,
+  [cfgFadeIn, cfgGrace, cfgFadeout, cfgSuspense, cfgResult, cfgLogout,
    cfgClutterIn, cfgClutterOut, cfgClutterStagger, cfgClutterDelay, cfgAttractMs,
    cfgRestScale, cfgRestScaleMs, cfgRestX, cfgRestXMs, cfgRestY, cfgRestYMs]
     .forEach(function (i) { i.addEventListener("change", readConfig); });
