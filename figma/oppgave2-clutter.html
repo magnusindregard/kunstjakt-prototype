@@ -860,13 +860,13 @@ Passer for barn fra 7-10 år</div>
   <label>Ventetid før nedtoning (s)<input type="number" id="cfg-grace" value="3" min="0" step="1"></label>
   <label>Nedtoning, varighet (s)<input type="number" id="cfg-fadeout" value="3" min="1" step="1"></label>
   <label>Spenning / loader (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
-  <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="3" min="1" step="1"></label>
+  <label>Resultatskjerm, varighet (s)<input type="number" id="cfg-result" value="5" min="1" step="1"></label>
   <label>Utlogging ved inaktivitet (s)<input type="number" id="cfg-logout" value="15" min="5" step="5"></label>
   <h2>Rot-animasjon</h2>
   <label>Rot inn (ms)<input type="number" id="cfg-clutter-in" value="560" min="0" step="20"></label>
   <label>Rot ut (ms)<input type="number" id="cfg-clutter-out" value="300" min="0" step="20"></label>
   <label>Forskyvning per form (ms)<input type="number" id="cfg-clutter-stagger" value="25" min="0" step="5"></label>
-  <label>Forsinkelse før rot, svarskjerm (s)<input type="number" id="cfg-clutter-delay" value="5" min="0" step="1"></label>
+  <label>Forsinkelse før rot, svarskjerm (s)<input type="number" id="cfg-clutter-delay" value="3" min="0" step="1"></label>
   <label>Knappepuls, syklus (ms)<input type="number" id="cfg-attract-ms" value="1100" min="200" step="50"></label>
   <h2>Hvileanimasjon</h2>
   <label>Størrelsesendring (%)<input type="number" id="cfg-rest-scale" value="0" min="0" step="1"></label>
@@ -1143,14 +1143,14 @@ Passer for barn fra 7-10 år</div>
   let GRACE_MS = 3000;
   let FADE_OUT_MS = 3000;
   let SUSPENSE_MS = 2500;
-  let RESULT_DISPLAY_MS = 3000;
+  let RESULT_DISPLAY_MS = 5000;
   let LOGOUT_MS = 15000;
   /* Countdown clutter. */
   let CLUTTER_IN_MS = 560;
   let CLUTTER_OUT_MS = 300;
   let CLUTTER_STAGGER_MS = 25;
   /* How long the answer screen is left alone before the pile arrives. */
-  let ANSWER_CLUTTER_DELAY_MS = 5000;
+  let ANSWER_CLUTTER_DELAY_MS = 3000;
   let ATTRACT_MS = 1100;
   /* Resting animation, shared by the shapes and the confetti. */
   let REST_SCALE_PCT = 4;
