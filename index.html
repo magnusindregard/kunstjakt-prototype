@@ -19,14 +19,22 @@
   * { box-sizing: border-box; }
 
   html, body {
-    height: 100%;
     margin: 0;
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   }
 
+  html { height: 100%; }
+
   body {
+    /* min-height, not height. A centred flex column that is pinned to the
+       viewport height splits any overflow between both ends, and the half above
+       the first item cannot be reached — there is no scrolling past the top of a
+       page. Letting the body grow instead means a list too tall for the window
+       simply makes the page taller and scrolls normally, while the centring
+       still applies on any screen with room to spare. */
+    min-height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
