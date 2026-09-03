@@ -123,12 +123,16 @@
      orange circle sends them all back out the way they came. Travel time and
      the stagger between shapes are set per element in the script — only the
      easing lives here. In is snappier than the screen-to-screen ease (the pile
-     is meant to land fast), out accelerates away. */
+     is meant to land fast), out leads with its fastest moment. */
   /* Arriving is the unhurried half: the pile gathers rather than snaps into
-     place. Leaving is the quick one — the shapes take off and accelerate out of
-     frame, so the task is clear again almost at once. */
+     place. Leaving is the answer to a press, so it is shaped the other way
+     round: the shapes are at full speed in the first frame and glide to a stop
+     off frame. Starting slow and building up — the obvious way to read "they
+     accelerate away" — costs the press its acknowledgement, because the first
+     hundred milliseconds after the finger lands are the ones being judged and
+     nothing has visibly moved yet. */
   #shapes.clutter-in .shape  { transition-timing-function: cubic-bezier(0.45, 0, 0.25, 1); }
-  #shapes.clutter-out .shape { transition-timing-function: cubic-bezier(0.35, 0, 0.9, 0.45); }
+  #shapes.clutter-out .shape { transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
   /* Shapes normally paint behind the screens — that is what makes them read as
      a backdrop. The pile has to do the opposite and bury the task, so each shape
      is lifted over the screens while it travels. The lift is per shape and not
