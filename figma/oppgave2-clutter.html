@@ -136,13 +136,19 @@
   /* Shapes normally paint behind the screens — that is what makes them read as
      a backdrop. The pile has to do the opposite and bury the task, so each shape
      is lifted over the screens while it travels. The lift is per shape and not
-     on the layer, because a shape resting behind the painting would otherwise
+     on the layer, because a shape resting behind screen content would otherwise
      jump in front of it the instant the clutter began; see enterClutter().
      #shapes itself must stay free of z-index, or it would trap the lifted
-     children in its own stacking context. The chrome is lifted higher still:
-     the orange circle and the profile lock-up are the two things the pile must
-     never cover. */
-  #hold-zone, #profile, #bar { z-index: 3; }
+     children in its own stacking context.
+
+     Four bands, and the order between them is the whole stacking story:
+       2  a shape that began behind the painting, travelling — over the task
+          text, still under the artwork, so it never changes sides
+       3  the painting
+       4  every other travelling shape: this is what buries the artwork
+       5  the chrome: the orange circle and the profile lock-up, the two things
+          the pile must never cover. */
+  #hold-zone, #profile, #bar { z-index: 5; }
   .bob, .sway, .pulse { width: 100%; height: 100%; }
   .shape img, .cshape img { width: 100%; height: 100%; display: block; }
 
@@ -502,6 +508,37 @@
      y 0-0.208 of melkeglass.jpeg (the glass, its tray and her hand start at
      y 0.23), and the blob is mirrored horizontally to frame her face. Regenerate
      from the full-res melkeglass.jpeg if the crop needs to change. */
+  /* The paintings ride in a layer of their own rather than in #task-layer, so
+     the pile has a plane it can sit on either side of. Burying the artwork is
+     still the point and almost every shape does, arriving from off frame at
+     band 4. The exception is the one shape per task screen that starts out
+     behind the painting: it travels at band 2, over the task text like the rest
+     of the pile but under the artwork it began under, so it never changes sides
+     and there is no flip to see. That in-between plane is the whole reason the
+     paintings need an element of their own.
+
+     It cannot just be a z-index on the <img>: an element mid-fade is a stacking
+     context, so for the whole three-second fade-out the painting's z-index would
+     be resolved among its siblings instead of against #shapes, and the shape
+     underneath would pop out over it. A layer carrying its own z-index keeps its
+     place in #stage whatever its opacity is doing. It fades in lockstep with
+     #task-layer; see fadeTask().
+
+     One window is left: while #task itself cross-fades (--xfade, 220ms) that
+     screen is mid-opacity and therefore a stacking context too, which traps this
+     layer inside it. The painting is fading up from nothing across those 220ms,
+     so there is nothing to see; if the cross-fade is ever slowed down, this is
+     the thing to check. */
+  #painting-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    opacity: 0;
+    pointer-events: none;
+    transition-property: opacity;
+    transition-timing-function: ease;
+    transition-duration: 0ms;
+  }
   #painting-find { position: absolute; left: 823px; top: 223px; width: 637px; height: 516px; }
   #painting-answer { position: absolute; left: 933px; top: 228px; width: 437px; height: 355px; }
 
@@ -686,9 +723,11 @@ Passer for barn fra 7-10 år</div>
     <!-- ===================== TASK (find / answer) ===================== -->
     <div id="task" class="screen find-mode">
       <div class="badge" style="left:110px;top:91px"><img src="assets/v2/badge.svg" alt=""><span>5</span></div>
-      <div id="task-layer">
+      <div id="painting-layer">
         <img id="painting-find" src="assets/v2/melk-lg.png" alt="Maleri av en kvinne som holder et glass melk">
         <img id="painting-answer" src="assets/v2/melk-sm.png" alt="Maleri av en kvinne som holder et glass melk">
+      </div>
+      <div id="task-layer">
         <div id="q-find" class="t t-task"></div>
         <div id="q-answer" class="t t-task"></div>
         <div id="options">
@@ -1179,6 +1218,7 @@ Passer for barn fra 7-10 år</div>
 
   const taskScreen = screens.task;
   const taskLayer = document.getElementById("task-layer");
+  const paintingLayer = document.getElementById("painting-layer");
   const qFind = document.getElementById("q-find");
   const qAnswer = document.getElementById("q-answer");
   const options = document.getElementById("options");
@@ -1361,20 +1401,22 @@ Passer for barn fra 7-10 år</div>
     ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
   function motion(ms) { return (reduceMotion && reduceMotion.matches) ? 0 : ms; }
 
-  const RAISED = "2";         // z-index of a shape while it is travelling
+  const RAISED = "4";         // z-index of a shape while it is travelling
+  const UNDER_ART = "2";      // ...one that started behind the painting: band 2
 
   let clutterOn = false;
   let clutterLayout = null;   // the CLUTTER table the pile is currently using
   let clutterOrder = CLUTTER_ORDER;
+  let clutterUnder = [];      // the shapes travelling under the painting
   let attractTimer = null;
   let clutterResetTimer = null;
   let zHooks = [];
 
   /* Lifting a held-back shape has to happen on the same clock as its travel, or
      the two drift apart — a background tab or a dropped frame is enough — and
-     the shape is lifted while still parked over the painting, which is the one
-     thing this is here to prevent. So the lift hangs off the transition itself:
-     transitionstart fires when the delay has elapsed and the shape is actually
+     the shape is lifted while still parked over screen content, which is the
+     one thing this is here to prevent. So the lift hangs off the transition
+     itself: transitionstart fires when the delay has elapsed and it is actually
      moving, transitionend when it is home. A timer alongside transition-delay
      would only be approximately in step. */
   function onceTransition(name, event, apply) {
@@ -1393,18 +1435,49 @@ Passer for barn fra 7-10 år</div>
   }
 
   /* Which shapes are already in frame on a given screen. These are the awkward
-     ones: a shape resting behind the painting is lifted over the screens the
-     moment the clutter starts, and would visibly jump in front of it. So they
-     are held back twice over — ordered last, so they set off only once the rest
-     of the pile already covers the painting, and lifted only as they set off.
-     The whole thing reversed on the way out puts them first, dropping each back
-     behind the screens as it lands, before the task has faded in again. */
+     ones: a shape resting in view is lifted over the screens the moment the
+     clutter starts, and would visibly jump in front of whatever it was sitting
+     behind. So they are held back twice over — ordered last, so they set off
+     only once the rest of the pile is already down, and lifted only as they set
+     off. The whole thing reversed on the way out puts them first, dropping each
+     back behind the screens as it lands, before the task has faded in again.
+     The shapes that start behind the painting are settled by band rather than by
+     timing and drop out of this set — see behindPainting(). */
   function inFrameOn(layoutKey) {
     const layout = SHAPE_LAYOUT[layoutKey] || {};
     return CLUTTER_ORDER.filter(function (name) {
       const p = layout[name] || PARK[name];
       return p[0] < 1600 && p[0] + p[2] > 0 && p[1] < 900 && p[1] + p[3] > 0;
     });
+  }
+
+  /* Where the painting sits on each task screen. Mirrors #painting-find and
+     #painting-answer in the CSS — move one and move the other. */
+  const PAINTING_BOX = {
+    taskfind:   [823, 223, 637, 516],
+    taskanswer: [933, 228, 437, 355]
+  };
+
+  /* The shapes that begin the clutter already behind the painting — one per task
+     screen as the layouts stand. They are the only ones the artwork has to stay
+     in front of; everything else arrives from off frame and is meant to bury it.
+     Lifting these to the same band as the rest is what made them jump out from
+     under the painting, however carefully the lift was timed, so they get a band
+     of their own underneath it and simply never change sides. Their resting spot
+     has no task text under it on either screen, so taking that band at the very
+     start is invisible. */
+  function behindPainting(layoutKey) {
+    const box = PAINTING_BOX[layoutKey];
+    if (!box) return [];
+    const layout = SHAPE_LAYOUT[layoutKey] || {};
+    return CLUTTER_ORDER.filter(function (name) {
+      const p = layout[name] || PARK[name];
+      return p[0] < box[0] + box[2] && p[0] + p[2] > box[0] &&
+             p[1] < box[1] + box[3] && p[1] + p[3] > box[1];
+    });
+  }
+  function bandFor(name) {
+    return clutterUnder.indexOf(name) >= 0 ? UNDER_ART : RAISED;
   }
 
   // Writes the travel timing for one leg and returns how long the whole pile
@@ -1446,8 +1519,14 @@ Passer for barn fra 7-10 år</div>
 
     // Everything already out of frame leads, and can be lifted straight away —
     // there is nothing to see it happen over. The shapes still in frame follow
-    // at the back, each lifted only once it is actually moving.
-    const late = inFrameOn(currentShapeKey);
+    // at the back, each lifted only once it is actually moving. The ones that
+    // start behind the painting are not part of that bargain: they stay under
+    // the artwork the whole way, so there is nothing to hide and no reason to
+    // hold them back.
+    clutterUnder = behindPainting(currentShapeKey);
+    const late = inFrameOn(currentShapeKey).filter(function (name) {
+      return clutterUnder.indexOf(name) < 0;
+    });
     clutterOrder = CLUTTER_ORDER.filter(function (name) {
       return late.indexOf(name) < 0;
     }).concat(late);
@@ -1457,7 +1536,7 @@ Passer for barn fra 7-10 år</div>
       if (staggered && late.indexOf(name) >= 0) {
         onceTransition(name, "transitionstart", function (el) { el.style.zIndex = RAISED; });
       } else {
-        shapeEls[name].style.zIndex = RAISED;   // off frame, or nothing is staggered
+        shapeEls[name].style.zIndex = bandFor(name);   // off frame, or not staggered
       }
     });
 
@@ -1476,7 +1555,7 @@ Passer for barn fra 7-10 år</div>
       // no event fired and the transforms simply jumped, so this is what lifts
       // them. Either way the pile ends up stacked the same.
       clearZHooks();
-      CLUTTER_ORDER.forEach(function (name) { shapeEls[name].style.zIndex = RAISED; });
+      CLUTTER_ORDER.forEach(function (name) { shapeEls[name].style.zIndex = bandFor(name); });
       holdZone.classList.add("attract");
     }, total);
   }
@@ -1492,8 +1571,8 @@ Passer for barn fra 7-10 år</div>
     applyShapes();
 
     // Reversed, the in-frame shapes lead the way home. Each drops back behind
-    // the screens the moment it lands, so the painting is never left with a
-    // shape parked on top of it waiting for the rest of the pile to clear.
+    // the screens the moment it lands, so the task is never left with a shape
+    // parked on top of it waiting for the rest of the pile to clear.
     inFrameOn(currentShapeKey).forEach(function (name) {
       onceTransition(name, "transitionend", function (el) { el.style.zIndex = ""; });
     });
@@ -1700,9 +1779,7 @@ Passer for barn fra 7-10 år</div>
     clearAllTimers();
     holding = false;
     holdZone.classList.remove("active");
-    taskLayer.style.transitionDuration = "0ms";
-    taskLayer.style.opacity = "0";
-    taskLayer.style.pointerEvents = "none";
+    fadeTask(0, 0, "none");
     // `visits` is odd once the task has been shown once, so the next hold opens
     // the answer screen — greet accordingly.
     greetSub.textContent = (visits % 2 === 1) ? GREET_RETURN : GREET_FIRST;
@@ -1717,6 +1794,18 @@ Passer for barn fra 7-10 år</div>
   }
 
   /* ================= Hold to reveal the task ================= */
+  /* Task text and painting fade as one thing but live in two layers now, so
+     every fade has to drive both. Only the text layer ever takes pointer
+     events — the answer buttons are in it, and the painting is never clickable
+     — so callers that do not care about them leave the argument off. */
+  function fadeTask(opacity, ms, pointerEvents) {
+    [taskLayer, paintingLayer].forEach(function (el) {
+      el.style.transitionDuration = ms + "ms";
+      el.style.opacity = String(opacity);
+    });
+    if (pointerEvents) taskLayer.style.pointerEvents = pointerEvents;
+  }
+
   function setHoldLabel(opacity, ms) {
     holdLabel.style.transitionDuration = ms + "ms";
     holdLabel.style.opacity = String(opacity);
@@ -1742,9 +1831,7 @@ Passer for barn fra 7-10 år</div>
       qAnswer.textContent = QUESTION_ANSWER;
       showScreen("task", isAnswerMode ? "taskanswer" : "taskfind");
     }
-    taskLayer.style.transitionDuration = FADE_IN_MS + "ms";
-    taskLayer.style.opacity = "1";
-    taskLayer.style.pointerEvents = "auto";
+    fadeTask(1, FADE_IN_MS, "auto");
     setHoldLabel(0, FADE_IN_MS);
   }
 
@@ -1762,8 +1849,7 @@ Passer for barn fra 7-10 år</div>
 
   function startFadeOut() {
     readConfig();
-    taskLayer.style.transitionDuration = FADE_OUT_MS + "ms";
-    taskLayer.style.opacity = "0";
+    fadeTask(0, FADE_OUT_MS);
     setHoldLabel(1, FADE_OUT_MS);
     fadeOutEndsAt = Date.now() + FADE_OUT_MS;
     fadeOutTimer = window.setTimeout(logout, FADE_OUT_MS);
@@ -1826,9 +1912,7 @@ Passer for barn fra 7-10 år</div>
     isAnswerMode = true;
     taskScreen.classList.add("answer-mode");
     taskScreen.classList.remove("find-mode");
-    taskLayer.style.transitionDuration = "0ms";
-    taskLayer.style.opacity = "1";
-    taskLayer.style.pointerEvents = "auto";
+    fadeTask(1, 0, "auto");
     setHoldLabel(0, 0);
     showScreen("task", "taskanswer");
     readConfig();
