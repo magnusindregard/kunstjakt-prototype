@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Kunstjakten – oppgave 2 med rot-animasjon (16:9)</title>
+<title>Kunstjakten – oppgave 2 med rot, rett til svaret (16:9)</title>
 
 <!-- Google Analytics, for the test runs of this prototype. Every screen but
      the idle one posts a bare event; see trackScreen() below. -->
@@ -1122,10 +1122,10 @@ Passer for barn fra 7-10 år</div>
   /* ---- Users. Any other code lands on the "feil kode" screen. ---- */
   const USERS = { "323": "Kristine", "118": "Jonas", "764": "Amina", "905": "Theo" };
 
-  /* ---- Greeting copy. The second time round the user is coming back with the
-     answer, so the greeting asks for it rather than handing out the task. ---- */
+  /* ---- Greeting copy. Only the first visit is greeted at all: the second
+     time round the user is coming back with the answer, and this prototype
+     hands them the options straight away instead. ---- */
   const GREET_FIRST = "Trykk og hold på den oransje sirkelen for å få oppgaven";
-  const GREET_RETURN = "Fant du svaret? Trykk og hold på den oransje sirkelen for å få alternativene.";
 
   /* ---- Task copy ---- */
   const CORRECT_ANSWER = "Et glass melk";
@@ -1592,7 +1592,7 @@ Passer for barn fra 7-10 år</div>
     correct:   "screen_correct",
     wrong:     "screen_wrong"
   };
-  const PROTOTYPE_ID = "oppgave2-clutter";
+  const PROTOTYPE_ID = "oppgave2-clutter-skip-greeting";
   function trackScreen(id) {
     const name = SCREEN_EVENTS[id];
     if (name && typeof window.gtag === "function") {
@@ -1699,9 +1699,11 @@ Passer for barn fra 7-10 år</div>
     taskLayer.style.transitionDuration = "0ms";
     taskLayer.style.opacity = "0";
     taskLayer.style.pointerEvents = "none";
-    // `visits` is odd once the task has been shown once, so the next hold opens
-    // the answer screen — greet accordingly.
-    greetSub.textContent = (visits % 2 === 1) ? GREET_RETURN : GREET_FIRST;
+    // `visits` is odd once the task has been shown once: the user is back with
+    // the answer, and a greeting asking them to hold for the options is only a
+    // step between them and the options. Hand those over instead.
+    if (visits % 2 === 1) { enterAnswer(); return; }
+    greetSub.textContent = GREET_FIRST;
     setHoldLabel(1, 0);
     showScreen("hei");
     armLogout();
@@ -1709,6 +1711,28 @@ Passer for barn fra 7-10 år</div>
     // this is the user's first sight of the mechanic, on a screen where it
     // costs them nothing.
     enterClutter();
+    startStatusTicker();
+  }
+
+  /* The returning user's first screen: the question and its options, already
+     visible, with the pile coming in over them from the first frame — no
+     greeting, and no hold to get here. The visit is counted here rather than in
+     onHoldStart, which is what usually counts it, so find and answer keep
+     alternating across sessions. The circle still clears the pile. */
+  function enterAnswer() {
+    visits += 1;
+    isAnswerMode = true;
+    taskScreen.classList.add("answer-mode");
+    taskScreen.classList.remove("find-mode");
+    qFind.textContent = QUESTION_FIND;
+    qAnswer.textContent = QUESTION_ANSWER;
+    taskLayer.style.transitionDuration = "0ms";
+    taskLayer.style.opacity = "1";
+    taskLayer.style.pointerEvents = "auto";
+    setHoldLabel(0, 0);
+    showScreen("task", "taskanswer");
+    armLogout();
+    clutterAfterDelay(true);
     startStatusTicker();
   }
 
