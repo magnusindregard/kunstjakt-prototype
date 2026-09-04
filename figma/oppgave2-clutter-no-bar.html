@@ -896,7 +896,6 @@ Passer for barn fra 7-10 år</div>
 <div id="debug-panel">
   <h2>Timeout-mekanikk</h2>
   <label>Oppgaven toner inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
-  <label>Ventetid før oppgaven toner ut (s)<input type="number" id="cfg-grace" value="3" min="0" step="1"></label>
   <label>Oppgaven toner ut (s)<input type="number" id="cfg-fadeout" value="3" min="1" step="1"></label>
   <label>Spenningspause (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
   <label>Utlogging ved inaktivitet - loginskjermer (s)<input type="number" id="cfg-logout-login" value="15" min="5" step="5"></label>
@@ -1180,7 +1179,6 @@ Passer for barn fra 7-10 år</div>
      what actually runs and these are the same defaults written twice. Change one
      and change the other, or the panel quietly wins. */
   let FADE_IN_MS = 400;
-  let GRACE_MS = 3000;
   let FADE_OUT_MS = 3000;
   let SUSPENSE_MS = 2500;
   let RESULT_DISPLAY_MS = 12000;
@@ -1232,7 +1230,6 @@ Passer for barn fra 7-10 år</div>
   const debugToggle = document.getElementById("debug-toggle");
   const debugPanel = document.getElementById("debug-panel");
   const cfgFadeIn = document.getElementById("cfg-fade-in");
-  const cfgGrace = document.getElementById("cfg-grace");
   const cfgFadeout = document.getElementById("cfg-fadeout");
   const cfgSuspense = document.getElementById("cfg-suspense");
   const cfgResult = document.getElementById("cfg-result");
@@ -1260,7 +1257,7 @@ Passer for barn fra 7-10 år</div>
   let isAnswerMode = false;
   let holding = false;
   let idleTimer = null, idleEndsAt = null;
-  let graceTimer = null, graceEndsAt = null;
+  let settleTimer = null, settleEndsAt = null;   // waiting for the pile to land
   let fadeOutTimer = null, fadeOutEndsAt = null;
   let resultTimer = null, suspenseTimer = null, logoutTimer = null, logoutEndsAt = null;
   let statusTicker = null;
@@ -1286,7 +1283,6 @@ Passer for barn fra 7-10 år</div>
   /* ================= Config ================= */
   function readConfig() {
     FADE_IN_MS = Math.max(0, Number(cfgFadeIn.value) || 0);
-    GRACE_MS = Math.max(0, Number(cfgGrace.value) || 0) * 1000;
     FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1) * 1000;
     SUSPENSE_MS = Math.max(0, Number(cfgSuspense.value) || 0);
     RESULT_DISPLAY_MS = Math.max(1, Number(cfgResult.value) || 1) * 1000;
@@ -1308,7 +1304,7 @@ Passer for barn fra 7-10 år</div>
     REST_Y_MS = Math.max(100, Number(cfgRestYMs.value) || 100);
     applyRestingAnimation();
   }
-  [cfgFadeIn, cfgGrace, cfgFadeout, cfgSuspense, cfgResult, cfgLogoutLogin, cfgLogoutGreeting, cfgLogoutAnswer,
+  [cfgFadeIn, cfgFadeout, cfgSuspense, cfgResult, cfgLogoutLogin, cfgLogoutGreeting, cfgLogoutAnswer,
    cfgClutterIn, cfgClutterOut, cfgClutterStagger, cfgClutterDelay, cfgAttractMs,
    cfgRestScale, cfgRestScaleMs, cfgRestX, cfgRestXMs, cfgRestY, cfgRestYMs]
     .forEach(function (i) { i.addEventListener("change", readConfig); });
@@ -1501,6 +1497,15 @@ Passer for barn fra 7-10 år</div>
     return String(i < 0 ? RAISED_BASE - 1 : RAISED_BASE + i);
   }
 
+  // How long a leg of the journey takes end to end: one shape's travel plus the
+  // stagger stacked up across the rest. The task screens need this before the
+  // pile sets off — their fade-out hangs off the moment it lands — so the sum
+  // lives on its own and clutterTiming() only writes it onto the elements.
+  // clutterOrder is CLUTTER_ORDER reordered, never a different set, so the count
+  // holds whether or not a pile is running.
+  function clutterLegMs(dur) {
+    return motion(dur) + (CLUTTER_ORDER.length - 1) * motion(CLUTTER_STAGGER_MS);
+  }
   // Writes the travel timing for one leg and returns how long the whole pile
   // takes, travel plus stagger.
   function clutterTiming(dur, reverse) {
@@ -1511,7 +1516,7 @@ Passer for barn fra 7-10 år</div>
       el.style.transitionDuration = motion(dur) + "ms";
       el.style.transitionDelay = ((reverse ? n - 1 - i : i) * step) + "ms";
     });
-    return motion(dur) + (n - 1) * step;
+    return clutterLegMs(dur);
   }
   function clearClutterTiming() {
     clearZHooks();
@@ -1609,6 +1614,9 @@ Passer for barn fra 7-10 år</div>
      back for, so the pile waits before burying them, and every wait on that
      screen is the same length. Every other screen clutters at once.
 
+     Returns when the last shape will land, wait and travel together — which is
+     what the task screens time their ending from; see startTaskCountdown().
+
      `hideCircle` is for the arrival only, where nothing is counting the screen
      down: there is nothing to clear yet, and an idle circle would only pull the
      eye off the options. Once a fade-out is running, the circle is what stops
@@ -1618,16 +1626,37 @@ Passer for barn fra 7-10 år</div>
   function clutterAfterDelay(hideCircle) {
     cancelClutterDelay();
     readConfig();
-    if (current !== "task" || !isAnswerMode || ANSWER_CLUTTER_DELAY_MS <= 0) {
+    const wait = (current === "task" && isAnswerMode) ? ANSWER_CLUTTER_DELAY_MS : 0;
+    if (wait <= 0) {
       enterClutter();
-      return;
+    } else {
+      if (hideCircle) holdZone.classList.add("waiting");
+      clutterDelayTimer = window.setTimeout(function () {
+        clutterDelayTimer = null;
+        holdZone.classList.remove("waiting");
+        enterClutter();
+      }, wait);
     }
-    if (hideCircle) holdZone.classList.add("waiting");
-    clutterDelayTimer = window.setTimeout(function () {
-      clutterDelayTimer = null;
-      holdZone.classList.remove("waiting");
-      enterClutter();
-    }, ANSWER_CLUTTER_DELAY_MS);
+    return wait + clutterLegMs(CLUTTER_IN_MS);
+  }
+
+  /* The task screen's ending, and the only thing that ends it. Nothing counts
+     down while the task is still readable: the fade-out starts the moment the
+     last shape lands on top of it, and the session ends when the fade does. So
+     the countdown is the pile's wait plus its travel plus the fade, and that is
+     what the bar draws.
+
+     It used to be a fixed wait from the release — a "grace" period — with the
+     fade after it. That never lined up with the pile. On the answer screen the
+     two were started together rather than one after the other, so the task began
+     fading while the options were still in the clear and the pile came down on
+     something already half gone; on the find screen the pile landed seconds
+     before anything happened to it. Hanging the fade off the landing makes the
+     two screens behave the same way and leaves one number to tune. */
+  function startTaskCountdown(hideCircle) {
+    const lands = clutterAfterDelay(hideCircle);
+    settleEndsAt = Date.now() + lands;
+    settleTimer = window.setTimeout(startFadeOut, lands);
   }
   // Cancelling always hands the circle back: nothing is pending for it to wait
   // for, and it is hidden nowhere else.
@@ -1876,9 +1905,7 @@ Passer for barn fra 7-10 år</div>
     holdZone.classList.remove("active");
     clearAllTimers();
     readConfig();
-    graceEndsAt = Date.now() + GRACE_MS;
-    graceTimer = window.setTimeout(startFadeOut, GRACE_MS);
-    clutterAfterDelay(false);
+    startTaskCountdown(false);
   }
 
   function startFadeOut() {
@@ -1957,19 +1984,17 @@ Passer for barn fra 7-10 år</div>
     fadeTask(1, 0, "auto");   // content is already visible; nothing to fade in
     showScreen("task", "taskfind");
     readConfig();
-    graceEndsAt = Date.now() + GRACE_MS;
-    graceTimer = window.setTimeout(startFadeOut, GRACE_MS);
-    clutterAfterDelay(false);
+    startTaskCountdown(false);
   }
 
   /* ================= Timers ================= */
   function clearAllTimers() {
-    [idleTimer, graceTimer, fadeOutTimer, resultTimer, suspenseTimer].forEach(function (t) {
+    [idleTimer, settleTimer, fadeOutTimer, resultTimer, suspenseTimer].forEach(function (t) {
       if (t) window.clearTimeout(t);
     });
-    idleTimer = graceTimer = fadeOutTimer = resultTimer = suspenseTimer = null;
+    idleTimer = settleTimer = fadeOutTimer = resultTimer = suspenseTimer = null;
     cancelClutterDelay();
-    idleEndsAt = graceEndsAt = fadeOutEndsAt = null;
+    idleEndsAt = settleEndsAt = fadeOutEndsAt = null;
     clearLogout();
   }
   // Inactivity logout. Nothing on screen shows it running: the countdown is
@@ -1998,7 +2023,7 @@ Passer for barn fra 7-10 år</div>
     let state, detail;
     if (holding) { state = "HOLDER"; detail = "oppgaven er synlig"; }
     else if (fadeOutEndsAt) { state = "TONER NED"; detail = Math.max(0, (fadeOutEndsAt - now) / 1000).toFixed(1) + "s til startskjerm"; }
-    else if (graceEndsAt) { state = "VENTER"; detail = Math.max(0, (graceEndsAt - now) / 1000).toFixed(1) + "s til nedtoning"; }
+    else if (settleEndsAt) { state = "VENTER"; detail = Math.max(0, (settleEndsAt - now) / 1000).toFixed(1) + "s til nedtoning"; }
     else if (logoutEndsAt) { state = "INAKTIV"; detail = Math.max(0, (logoutEndsAt - now) / 1000).toFixed(1) + "s til utlogging"; }
     else { state = "IDLE"; detail = "-"; }
     debugStatus.textContent =
