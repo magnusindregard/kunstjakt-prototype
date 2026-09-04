@@ -902,12 +902,12 @@ Passer for barn fra 7-10 år</div>
   <label>Utlogging ved inaktivitet - loginskjermer (s)<input type="number" id="cfg-logout-login" value="15" min="5" step="5"></label>
   <label>Utlogging ved inaktivitet - greeting (s)<input type="number" id="cfg-logout-greeting" value="15" min="5" step="5"></label>
   <label>Utlogging ved inaktivitet - svarskjerm (s)<input type="number" id="cfg-logout-answer" value="15" min="5" step="5"></label>
-  <label>Utlogging ved inaktivitet - resultatskjerm (s)<input type="number" id="cfg-result" value="5" min="1" step="1"></label>
+  <label>Utlogging ved inaktivitet - resultatskjerm (s)<input type="number" id="cfg-result" value="12" min="1" step="1"></label>
   <h2>Clutter-animasjon</h2>
   <label>Clutter inn, per form (ms)<input type="number" id="cfg-clutter-in" value="560" min="0" step="20"></label>
-  <label>Clutter ut, per form (ms)<input type="number" id="cfg-clutter-out" value="300" min="0" step="20"></label>
-  <label>Forsinkelse mellom hver form (ms)<input type="number" id="cfg-clutter-stagger" value="5" min="0" step="1"></label>
-  <label>Forsinkelse før clutter, svarskjerm (s)<input type="number" id="cfg-clutter-delay" value="3" min="0" step="1"></label>
+  <label>Clutter ut, per form (ms)<input type="number" id="cfg-clutter-out" value="800" min="0" step="20"></label>
+  <label>Forsinkelse mellom hver form (ms)<input type="number" id="cfg-clutter-stagger" value="2" min="0" step="1"></label>
+  <label>Forsinkelse før clutter, svarskjerm (s)<input type="number" id="cfg-clutter-delay" value="4" min="0" step="1"></label>
   <label>Knappepuls, syklus (ms)<input type="number" id="cfg-attract-ms" value="1100" min="200" step="50"></label>
   <h2>Hvileanimasjon</h2>
   <label>Størrelsesendring (%)<input type="number" id="cfg-rest-scale" value="0" min="0" step="1"></label>
@@ -1174,29 +1174,33 @@ Passer for barn fra 7-10 år</div>
   const QUESTION_FIND = QUESTION + "\n\n" + FIND_FOOTER;
   const QUESTION_ANSWER = QUESTION;
 
-  /* ---- Config ---- */
+  /* ---- Config ----
+     Every number here is also the `value` of its input in the debug panel, and
+     readConfig() reads the panel back over all of them at boot — so the panel is
+     what actually runs and these are the same defaults written twice. Change one
+     and change the other, or the panel quietly wins. */
   let FADE_IN_MS = 400;
   let GRACE_MS = 3000;
   let FADE_OUT_MS = 3000;
   let SUSPENSE_MS = 2500;
-  let RESULT_DISPLAY_MS = 5000;
+  let RESULT_DISPLAY_MS = 12000;
   let LOGOUT_LOGIN_MS = 15000;
   let LOGOUT_GREETING_MS = 15000;
   let LOGOUT_ANSWER_MS = 15000;
   /* Countdown clutter. */
   let CLUTTER_IN_MS = 560;
-  let CLUTTER_OUT_MS = 300;
-  let CLUTTER_STAGGER_MS = 5;
+  let CLUTTER_OUT_MS = 800;
+  let CLUTTER_STAGGER_MS = 2;
   /* How long the answer screen is left alone before the pile arrives. */
-  let ANSWER_CLUTTER_DELAY_MS = 3000;
+  let ANSWER_CLUTTER_DELAY_MS = 4000;
   let ATTRACT_MS = 1100;
   /* Resting animation, shared by the shapes and the confetti. */
-  let REST_SCALE_PCT = 4;
+  let REST_SCALE_PCT = 0;
   let REST_SCALE_MS = 6200;
-  let REST_X_PX = 2;
+  let REST_X_PX = 10;
   let REST_X_MS = 4000;
-  let REST_Y_PX = 5;
-  let REST_Y_MS = 7300;
+  let REST_Y_PX = 10;
+  let REST_Y_MS = 5000;
 
   /* ---- Elements ---- */
   const stage = document.getElementById("stage");
@@ -1994,7 +1998,7 @@ Passer for barn fra 7-10 år</div>
 
   /* ================= Boot ================= */
   initShapes();
-  applyRestingAnimation();
+  readConfig();   // the debug panel owns the numbers, resting animation included
   resetCode();
   showScreen("idle");
 })();
