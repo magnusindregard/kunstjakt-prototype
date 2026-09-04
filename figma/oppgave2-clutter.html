@@ -1934,14 +1934,25 @@ Passer for barn fra 7-10 år</div>
   document.getElementById("btn-ferdig").addEventListener("click", logout);
   document.getElementById("btn-again").addEventListener("click", backToTask);
 
+  /* "Se oppgaven på nytt", from the wrong-answer screen. It hands back the first
+     task screen — the one that only asks and sends you off to look — and not the
+     options: another run at the same four buttons is guessing, and the point of
+     the hunt is that the answer is in the room.
+
+     The visit is counted here even though no hold opened the screen, because
+     `visits` is what makes find and answer alternate. The find screen has just
+     been shown, so counting it is what leaves the next hold offering the
+     options — and what has the greeting ask "Fant du svaret?" in between. */
   function backToTask() {
     clearAllTimers();
-    // Back into the task, still in answer mode, content already visible.
-    isAnswerMode = true;
-    taskScreen.classList.add("answer-mode");
-    taskScreen.classList.remove("find-mode");
-    fadeTask(1, 0, "auto");
-    showScreen("task", "taskanswer");
+    visits += 1;
+    isAnswerMode = false;
+    taskScreen.classList.remove("answer-mode");
+    taskScreen.classList.add("find-mode");
+    qFind.textContent = QUESTION_FIND;
+    qAnswer.textContent = QUESTION_ANSWER;
+    fadeTask(1, 0, "auto");   // content is already visible; nothing to fade in
+    showScreen("task", "taskfind");
     readConfig();
     startBar(GRACE_MS + FADE_OUT_MS);
     graceEndsAt = Date.now() + GRACE_MS;
