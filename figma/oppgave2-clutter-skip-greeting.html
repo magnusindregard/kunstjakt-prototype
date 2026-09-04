@@ -28,7 +28,7 @@
     --green: #217b39;
     --lightgreen: #b3d181;
     --lilac: #deafd2;
-    --orange: #f39327;      /* hold-circle orange */
+    --orange: #ffa744;      /* hold-circle orange */
     --orange-soft: #ffbd72; /* button shadow + progress bar */
     --border: #949494;
     --font: 'Museet Sans Text', 'Helvetica Neue', Arial, sans-serif;
@@ -141,14 +141,17 @@
      #shapes itself must stay free of z-index, or it would trap the lifted
      children in its own stacking context.
 
-     Four bands, and the order between them is the whole stacking story:
-       2  a shape that began behind the painting, travelling — over the task
-          text, still under the artwork, so it never changes sides
-       3  the painting
-       4  every other travelling shape: this is what buries the artwork
-       5  the chrome: the orange circle and the profile lock-up, the two things
-          the pile must never cover. */
-  #hold-zone, #profile, #bar { z-index: 5; }
+     The bands, and the order between them is the whole stacking story:
+        2   a shape that began behind the painting, travelling — over the task
+            text, still under the artwork, so it never changes sides
+        3   the painting
+       10+  every other travelling shape, one band each: the clutter layouts are
+            written back to front, and a shape takes its band from its place in
+            that list, so the pile stacks the way the design draws it. This is
+            what buries the artwork.
+       35   the chrome: the orange circle and the profile lock-up, the two things
+            the pile must never cover. */
+  #hold-zone, #profile, #bar { z-index: 35; }
   .bob, .sway, .pulse { width: 100%; height: 100%; }
   .shape img, .cshape img { width: 100%; height: 100%; display: block; }
 
@@ -444,34 +447,35 @@
   /* ---------- Hold circle ---------- */
   #hold-zone {
     position: absolute;
-    left: 1336px;
-    top: 659px;
-    width: 163.02px;
-    height: 163.02px;
+    left: 1307px;
+    top: 614px;
+    width: 205.881px;
+    height: 205.881px;
     touch-action: none;
     cursor: pointer;
   }
   #hold-zone svg, #hold-zone img { position: absolute; display: block; }
   #hold-ring { inset: 0; width: 100%; height: 100%; transition: transform 0.15s ease; }
   #hold-zone.active #hold-ring { transform: scale(1.06); }
+  /* "Hold på meg!" rides the top of the circle and never leaves. The label is
+     the whole invitation, so it stays legible through the task and through the
+     countdown instead of fading out with them — the circle is the one thing on
+     the screen that always means the same thing. */
   #hold-label { inset: 0; width: 100%; height: 100%; pointer-events: none; }
   #hold-label text {
     font-family: var(--font);
-    font-size: 26px;
-    fill: #fff;
-    letter-spacing: 0.5px;
+    font-size: 29px;
+    fill: #1e1e1d;
   }
   #hold-hand {
-    left: 50.6px;
-    top: 50.2px;
-    width: 61.3px;
-    height: 81.16px;
-    /* The exported icon points downwards; turn it so the fingers face up. */
-    transform: rotate(180deg);
+    left: 73.31px;
+    top: 78.41px;
+    width: 57.9448px;
+    height: 93.231px;
+    /* The exported icon stands upright; the design tips it to the right. */
+    transform: rotate(16.9deg);
     pointer-events: none;
   }
-  /* The label fades out as the task fades in, and back as it times out. */
-  #hold-label { transition-property: opacity; transition-timing-function: ease; transition-duration: 0ms; }
   /* Once the clutter has landed the circle is the only readable thing left on
      the screen, so it pulses to say so. The pulse sits on the zone itself; the
      press feedback stays on the ring inside it, so the two never collide. */
@@ -679,15 +683,17 @@
            the edge on every screen and only ever come out for the countdown
            pile. They are the solid, dense forms in the toolbox — the standard
            shapes above are lacy enough that the task reads straight through
-           them. Last in the layer, so they land on top of the pile. -->
-      <div class="shape" data-shape="clutter-pebble-lilac"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-pebble-lilac.svg" alt=""></div></div></div></div>
-      <div class="shape" data-shape="clutter-star-green"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-green.svg" alt=""></div></div></div></div>
-      <div class="shape" data-shape="clutter-cloud"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-cloud.png" alt=""></div></div></div></div>
-      <div class="shape" data-shape="clutter-blob-green"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-blob-green.svg" alt=""></div></div></div></div>
-      <div class="shape" data-shape="clutter-blob-blue"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-blob-blue.svg" alt=""></div></div></div></div>
-      <div class="shape" data-shape="clutter-blob-yellow"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-blob-yellow.svg" alt=""></div></div></div></div>
-      <div class="shape" data-shape="clutter-star-orange"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-orange.svg" alt=""></div></div></div></div>
-      <div class="shape" data-shape="clutter-star-lilac"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-lilac.svg" alt=""></div></div></div></div>
+           them. Order in this list settles nothing during the pile: the clutter
+           layouts stack it, shape by shape; see bandFor(). -->
+      <div class="shape" data-shape="cloud-lightblue"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-cloud-lightblue.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="cloud-lightgreen"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-cloud-lightgreen.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="starbig-pink"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-starbig-pink.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="star-yellow-a"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-yellow.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="star-yellow-b"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-yellow.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="star-blue"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-star-blue.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="pebble-lilac"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/burst-pebble-lilac.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="squiggle-darkgreen"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-squiggle-darkgreen.svg" alt=""></div></div></div></div>
+      <div class="shape" data-shape="squiggle-lightgreen"><div class="bob"><div class="sway"><div class="pulse"><img src="assets/v2/shape-squiggle-lightgreen.svg" alt=""></div></div></div></div>
     </div>
 
     <!-- ===================== IDLE / HOME ===================== -->
@@ -871,14 +877,19 @@ Passer for barn fra 7-10 år</div>
 
     <!-- ============ PERSISTENT CHROME (above screens) ============ -->
     <div id="hold-zone">
-      <svg id="hold-ring" viewBox="0 0 163.02 163.02" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="81.51" cy="81.51" r="80.51" fill="#F39327" stroke="#1E1E1D" stroke-width="2"/>
+      <svg id="hold-ring" viewBox="0 0 205.881 205.881" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="102.94" cy="102.94" r="102.44" fill="#FFA744" stroke="#1E1E1D" stroke-width="1"/>
       </svg>
-      <svg id="hold-label" viewBox="0 0 163.02 163.02" xmlns="http://www.w3.org/2000/svg">
-        <path id="hold-arc" fill="none" d="M 31.5,81.5 A 50,50 0 0 1 131.5,81.5"/>
-        <text text-anchor="middle"><textPath href="#hold-arc" startOffset="50%">Hold</textPath></text>
+      <!-- The arc is the circle the label sits on, not the button's own edge:
+           radius 60.5, concentric with the button, which is where the design
+           puts the baseline. Text rides the outside of it, centred on the top.
+           At 29px the fallback font sweeps the same 157° the design does; the
+           real Museet Sans is wider and will reach a little further. -->
+      <svg id="hold-label" viewBox="0 0 205.881 205.881" xmlns="http://www.w3.org/2000/svg">
+        <path id="hold-arc" fill="none" d="M 42.44,102.94 A 60.5,60.5 0 0 1 163.44,102.94"/>
+        <text text-anchor="middle"><textPath href="#hold-arc" startOffset="50%">Hold på meg!</textPath></text>
       </svg>
-      <img id="hold-hand" src="assets/v2/hold-hand.svg" alt="">
+      <img id="hold-hand" src="assets/v2/hold-hand-black.svg" alt="">
     </div>
 
     <div id="profile">
@@ -948,15 +959,24 @@ Passer for barn fra 7-10 år</div>
     "pebble2-lightblue": [1720, 323, 298.9, 292.79],
     "bottomleft":        [-140, 1002.88, 334.18, 348.15],
     /* Clutter-only. Spread across all four edges, so the pile closes in from
-       every side rather than sweeping across. */
-    "clutter-pebble-lilac": [-500, 320, 426, 417.18],
-    "clutter-star-green":   [400, -420, 344, 336],
-    "clutter-cloud":        [1720, 210, 400, 324.09],
-    "clutter-blob-green":   [1150, -260, 174, 169.4],
-    "clutter-blob-blue":    [1075, 1010, 174, 169.4],
-    "clutter-blob-yellow":  [1720, 640, 174, 169.4],
-    "clutter-star-orange":  [520, 1010, 191.15, 186.42],
-    "clutter-star-lilac":   [330, 1010, 191.15, 186.42]
+       every side rather than sweeping across. Each entry is also the shape's
+       base size — initShapes() lays every shape out at its PARK width and
+       height and scales from there, so these are the asset's own dimensions.
+
+       squiggle-lightgreen carries the fifth number: rotation, in degrees. It is
+       the one shape the design turns, and it holds the same angle parked as it
+       does in the pile, so it flies in without spinning like everything else.
+       The rotation happens about the entry's x,y — the transform origin is the
+       top left corner — which is exactly the anchor Figma reports for it. */
+    "cloud-lightblue":     [520, -560, 513.548, 415.998],
+    "cloud-lightgreen":    [-620, -180, 513.548, 415.998],
+    "starbig-pink":        [600, 1010, 344.002, 336.004],
+    "star-yellow-a":       [-330, -320, 191.148, 186.42],
+    "star-yellow-b":       [-360, 60, 191.148, 186.42],
+    "star-blue":           [500, 1010, 191.148, 186.42],
+    "pebble-lilac":        [700, 1010, 426, 417.176],
+    "squiggle-darkgreen":  [-900, 300, 629, 537],
+    "squiggle-lightgreen": [2400, 270.008, 629, 537, 110.33]
   };
 
   const SHAPE_LAYOUT = {
@@ -1020,9 +1040,14 @@ Passer for barn fra 7-10 år</div>
   /* =========================================================================
      CLUTTER LAYOUTS
      Where every shape piles up while a countdown runs, keyed by the screen the
-     countdown is running on. Same [x, y, width, height] form as SHAPE_LAYOUT.
-     A screen with no entry here never clutters, so this table is the whole
-     answer to "where does the mechanic apply".
+     countdown is running on. Same [x, y, width, height] form as SHAPE_LAYOUT,
+     plus an optional fifth number for rotation. A screen with no entry here
+     never clutters, so this table is the whole answer to "where does the
+     mechanic apply".
+
+     Both tables are the designer's target state, traced off Figma: which shapes
+     turn up, how big they are, where they land and — since the lists are read
+     back to front by bandFor() — the order they stack in.
 
      The two task screens share one layout: the point there is that the task and
      the painting disappear under it, and both screens put those in the same
@@ -1031,39 +1056,32 @@ Passer for barn fra 7-10 år</div>
 
      Two rectangles stay clear on every screen, and every box below is kept out
      of them:
-       the orange circle   x 1300-1560, y 615-870  (1336,659 + 163 sq, + margin)
+       the orange circle   x 1290-1530, y 600-835  (1307,614 + 206 sq, + margin)
        the profile lockup  x 1225-1560, y  55-200  (right-aligned on x=1489)
      If you move either of those in the markup, move these bounds with them.
 
      Every shape travels here from wherever it already is — which for most of
      them is their PARK position just off one of the four edges, so the pile
-     visibly closes in from all sides. Listed roughly back to front. */
+     visibly closes in from all sides. Listed back to front. */
 
-  /* Task screens: bury the lot. */
+  /* Task screens: bury the lot. Positions, sizes and stacking come straight
+     from the Figma target state; the shapes not listed here simply park. */
   const CLUTTER_TASK = {
-    /* Backdrop layer: the standard shapes, mostly enlarged, filling the frame. */
-    "wave-lightblue":       [-130, -80, 520, 443.98],
-    "splat-pink":           [270, -90, 520, 542.50],
-    "outline":              [760, -80, 450, 438.03],
-    "squiggle-lilac":       [-150, 150, 720, 614.70],
-    "curl-green":           [470, 210, 500, 415.11],
-    "pebble-lightblue":     [1300, 240, 320, 313.36],
-    "splat-lilac":          [860, 300, 430, 447.78],
-    "pebble2-lightblue":    [950, 570, 340, 333.05],
-    "curlbig-green":        [30, 520, 600, 499.25],
-    "wave-blue":            [430, 610, 500, 426.90],
-    "wave-ghost":           [150, 640, 460, 392.75],
-    "bottomleft":           [-110, 620, 400, 416.72],
-    /* Solid layer, on top: these sit squarely over the question, the painting
-       and the answer buttons, which the lacy shapes above only veil. */
-    "clutter-pebble-lilac": [-90, 150, 560, 548.40],   // question, left half
-    "clutter-star-green":   [370, 260, 420, 410.23],   // question, right half
-    "clutter-cloud":        [900, 210, 460, 372.71],   // painting, core
-    "clutter-blob-green":   [1150, 215, 240, 233.66],  // painting, top right
-    "clutter-blob-blue":    [1075, 480, 220, 214.18],  // painting, bottom
-    "clutter-star-lilac":   [330, 620, 260, 253.57],   // answers, left
-    "clutter-star-orange":  [500, 575, 285, 277.95],   // answers, middle
-    "clutter-blob-yellow":  [730, 578, 325, 316.41]    // answers, right
+    "splat-lilac":          [1104, 223, 370.328, 385.637],   // under the painting
+    "wave-ghost":           [338, 970, 438.446, 374.35],
+    "bottomleft":           [-140, 1002.875, 334.184, 348.154],
+    /* Everything below lands in front of the painting. */
+    "squiggle-darkgreen":   [362, 10, 806.782, 688.779],
+    "squiggle-lightgreen":  [1412.609, 270.008, 455.338, 388.641, 110.33],
+    "splat-pink":           [346.047, 534.602, 298.856, 310.4],
+    "pebble-lightblue":     [686, 142, 545.123, 533.805],
+    "star-yellow-a":        [988.648, 541.016, 242.605, 236.54],
+    "star-yellow-b":        [280, 125, 242.605, 236.54],
+    "starbig-pink":         [546, 107, 438.664, 428.403],
+    "cloud-lightblue":      [187, 213.938, 513.548, 415.998],
+    "cloud-lightgreen":     [484, 313, 564.363, 456.621],
+    "star-blue":            [523.047, 525.625, 242.605, 236.54],
+    "pebble-lilac":         [700.055, 552.555, 288.595, 292.443]
   };
 
   /* Greeting screen: the same swarm, but it frames the greeting instead of
@@ -1075,35 +1093,21 @@ Passer for barn fra 7-10 år</div>
      So a third rectangle stays clear here, on top of the circle and the lockup:
        the greeting text   x 80-810, y 330-640
      That is #greet-title (107,350, 80 tall) plus #greet-sub (107,475, up to 144
-     tall on the longer returning-user line), with room to spare on the right
-     because the real Museet Sans sets the title wider than the fallback does.
-     The shapes fill the top band, the right-hand side and the bottom band, and
-     leave that window alone. */
+     tall on the longer returning-user line). The shapes fill the top band, the
+     right-hand side and the bottom band, and leave that window alone. */
   const CLUTTER_HEI = {
-    /* Top band, above the greeting. */
-    "wave-lightblue":       [-130, -140, 500, 426.90],
-    "splat-pink":           [280, -180, 470, 489.43],
-    "outline":              [690, -150, 440, 428.29],
-    "clutter-star-green":   [520, -160, 380, 371.16],
-    "clutter-pebble-lilac": [40, -160, 420, 411.30],
-    /* Right-hand side, between the lockup and the circle. */
-    "curl-green":           [1150, 210, 460, 381.91],
-    "splat-lilac":          [850, 230, 400, 416.54],
-    "clutter-cloud":        [960, 260, 420, 340.29],
-    "clutter-blob-blue":    [1240, 400, 210, 204.45],
-    "clutter-blob-green":   [1075, 430, 215, 209.32],
-    "pebble-lightblue":     [1420, 210, 300, 293.77],
-    /* Left edge, beside the greeting rather than over it. */
-    "squiggle-lilac":       [-460, 300, 540, 461.02],
-    /* Bottom band, below the greeting. */
-    "curlbig-green":        [40, 645, 580, 482.61],
-    "wave-blue":            [430, 660, 500, 426.90],
-    "wave-ghost":           [150, 700, 440, 375.67],
-    "bottomleft":           [-120, 660, 400, 416.72],
-    "pebble2-lightblue":    [900, 640, 340, 333.05],
-    "clutter-star-orange":  [640, 700, 280, 273.07],
-    "clutter-blob-yellow":  [230, 690, 300, 292.07],
-    "clutter-star-lilac":   [-60, 640, 260, 253.57]
+    "cloud-lightblue":      [569, -196, 513.548, 415.998],
+    "starbig-pink":         [682, 509, 438.664, 428.403],
+    "pebble-lightblue":     [729, 560, 545.123, 533.805],
+    "splat-lilac":          [517, 730, 370.328, 385.637],
+    "curl-green":           [838, -161, 435.941, 361.931],
+    "wave-blue":            [694, 661, 438.446, 374.35],
+    "bottomleft":           [-140, 1002.875, 334.184, 348.154],
+    "squiggle-darkgreen":   [-570, 436, 806.782, 688.779],
+    "star-yellow-a":        [-410, -384, 242.605, 236.54],
+    "cloud-lightgreen":     [-107, -228, 564.363, 456.621],
+    "splat-pink":           [76, 728, 298.856, 310.4],
+    "star-yellow-b":        [-107, 68, 242.605, 236.54]
   };
 
   /* Keyed by screen id — a screen that is not in here never clutters. */
@@ -1114,15 +1118,18 @@ Passer for barn fra 7-10 år</div>
 
   /* Arrival order. Deliberately neither the layout order nor the layer order:
      it alternates between the edges so the pile builds from every side at once,
-     and it ends on the solid pieces so the task is veiled before it is buried.
-     Departure runs the same list backwards. */
+     and it ends on the big solid pieces so the task is veiled before it is
+     buried. Departure runs the same list backwards. */
   const CLUTTER_ORDER = [
-    "squiggle-lilac", "splat-pink", "pebble-lightblue", "wave-blue",
-    "outline", "curlbig-green", "splat-lilac", "curl-green",
-    "wave-lightblue", "wave-ghost", "pebble2-lightblue", "bottomleft",
-    "clutter-cloud", "clutter-pebble-lilac", "clutter-blob-green",
-    "clutter-star-orange", "clutter-star-green", "clutter-blob-blue",
-    "clutter-star-lilac", "clutter-blob-yellow"
+    /* The shapes the target state has no place for lead: they are on their way
+       off frame, and getting them out of the way first is what makes room. */
+    "squiggle-lilac", "outline", "wave-lightblue", "curlbig-green",
+    "pebble2-lightblue", "wave-ghost", "bottomleft",
+    /* Then the pile itself, alternating between the edges it comes in from. */
+    "cloud-lightblue", "starbig-pink", "star-yellow-b", "curl-green",
+    "squiggle-darkgreen", "pebble-lightblue", "star-yellow-a", "wave-blue",
+    "cloud-lightgreen", "splat-lilac", "star-blue", "squiggle-lightgreen",
+    "splat-pink", "pebble-lilac"
   ];
 
   /* =========================================================================
@@ -1227,7 +1234,6 @@ Passer for barn fra 7-10 år</div>
   const optionButtons = Array.prototype.slice.call(options.querySelectorAll(".btn"));
 
   const holdZone = document.getElementById("hold-zone");
-  const holdLabel = document.getElementById("hold-label");
   const profile = document.getElementById("profile");
   const bar = document.getElementById("bar");
   const greetSub = document.getElementById("greet-sub");
@@ -1373,8 +1379,13 @@ Passer for barn fra 7-10 år</div>
     const layout = clutterOn ? clutterLayout : (SHAPE_LAYOUT[currentShapeKey] || {});
     Object.keys(shapeEls).forEach(function (name) {
       const p = layout[name] || PARK[name];
+      // Optional fifth number: rotation. Origin is the shape's top left corner
+      // (transform-origin: 0 0), so x,y is the anchor the rotation turns about
+      // rather than a corner of the finished box — the same anchor Figma uses.
+      const spin = p[4] ? " rotate(" + p[4] + "deg)" : "";
       shapeEls[name].style.transform =
-        "translate(" + p[0] + "px," + p[1] + "px) scale(" + p[2] / SHAPE_BASE[name][0] + ")";
+        "translate(" + p[0] + "px," + p[1] + "px)" + spin +
+        " scale(" + p[2] / SHAPE_BASE[name][0] + ")";
     });
   }
 
@@ -1414,7 +1425,7 @@ Passer for barn fra 7-10 år</div>
     ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
   function motion(ms) { return (reduceMotion && reduceMotion.matches) ? 0 : ms; }
 
-  const RAISED = "4";         // z-index of a shape while it is travelling
+  const RAISED_BASE = 10;     // z-index of the backmost shape while travelling
   const UNDER_ART = "2";      // ...one that started behind the painting: band 2
 
   let clutterOn = false;
@@ -1489,8 +1500,17 @@ Passer for barn fra 7-10 år</div>
              p[1] < box[1] + box[3] && p[1] + p[3] > box[1];
     });
   }
+  // One band per shape, taken from its place in the clutter layout: those tables
+  // are written back to front, so the pile stacks the way the design draws it
+  // and the markup order stops mattering once the shapes are lifted. A shape the
+  // layout does not mention is on its way off frame — it sits one band below the
+  // whole pile, still clear of the screens it is crossing but under everything
+  // that is staying.
   function bandFor(name) {
-    return clutterUnder.indexOf(name) >= 0 ? UNDER_ART : RAISED;
+    if (clutterUnder.indexOf(name) >= 0) return UNDER_ART;
+    const order = clutterLayout ? Object.keys(clutterLayout) : [];
+    const i = order.indexOf(name);
+    return String(i < 0 ? RAISED_BASE - 1 : RAISED_BASE + i);
   }
 
   // Writes the travel timing for one leg and returns how long the whole pile
@@ -1547,7 +1567,7 @@ Passer for barn fra 7-10 år</div>
     const staggered = motion(CLUTTER_STAGGER_MS) > 0;
     CLUTTER_ORDER.forEach(function (name) {
       if (staggered && late.indexOf(name) >= 0) {
-        onceTransition(name, "transitionstart", function (el) { el.style.zIndex = RAISED; });
+        onceTransition(name, "transitionstart", function (el) { el.style.zIndex = bandFor(name); });
       } else {
         shapeEls[name].style.zIndex = bandFor(name);   // off frame, or not staggered
       }
@@ -1798,7 +1818,6 @@ Passer for barn fra 7-10 år</div>
     // step between them and the options. Hand those over instead.
     if (visits % 2 === 1) { enterAnswer(); return; }
     greetSub.textContent = GREET_FIRST;
-    setHoldLabel(1, 0);
     showScreen("hei");
     armLogout("greeting");
     // The greeting's countdown starts with the screen, so the pile does too:
@@ -1821,7 +1840,6 @@ Passer for barn fra 7-10 år</div>
     qFind.textContent = QUESTION_FIND;
     qAnswer.textContent = QUESTION_ANSWER;
     fadeTask(1, 0, "auto");
-    setHoldLabel(0, 0);
     showScreen("task", "taskanswer");
     armLogout("answer");
     clutterAfterDelay(true);
@@ -1839,11 +1857,6 @@ Passer for barn fra 7-10 år</div>
       el.style.opacity = String(opacity);
     });
     if (pointerEvents) taskLayer.style.pointerEvents = pointerEvents;
-  }
-
-  function setHoldLabel(opacity, ms) {
-    holdLabel.style.transitionDuration = ms + "ms";
-    holdLabel.style.opacity = String(opacity);
   }
 
   function onHoldStart(e) {
@@ -1870,7 +1883,6 @@ Passer for barn fra 7-10 år</div>
     }
     exitClutter(); // the pile goes back out the way it came, at full speed
     fadeTask(1, FADE_IN_MS, "auto");
-    setHoldLabel(0, FADE_IN_MS);
   }
 
   function onHoldEnd() {
@@ -1888,7 +1900,6 @@ Passer for barn fra 7-10 år</div>
   function startFadeOut() {
     readConfig();
     fadeTask(0, FADE_OUT_MS);
-    setHoldLabel(1, FADE_OUT_MS);
     fadeOutEndsAt = Date.now() + FADE_OUT_MS;
     fadeOutTimer = window.setTimeout(logout, FADE_OUT_MS);
   }
@@ -1951,7 +1962,6 @@ Passer for barn fra 7-10 år</div>
     taskScreen.classList.add("answer-mode");
     taskScreen.classList.remove("find-mode");
     fadeTask(1, 0, "auto");
-    setHoldLabel(0, 0);
     showScreen("task", "taskanswer");
     readConfig();
     startBar(GRACE_MS + FADE_OUT_MS);
