@@ -1295,6 +1295,11 @@ Passer for barn fra 7-10 år</div>
     CLUTTER_STAGGER_MS = Math.max(0, Number(cfgClutterStagger.value) || 0);
     ANSWER_CLUTTER_DELAY_MS = Math.max(0, Number(cfgClutterDelay.value) || 0) * 1000;
     ATTRACT_MS = Math.max(200, Number(cfgAttractMs.value) || 200);
+    // Written here and not where the pulse starts, so a new number reaches a
+    // circle that is already pulsing. Setting it once when the pile lands meant
+    // the one animation you are looking at while you type ignored you until the
+    // next pile came in — which reads as a dead control, not a delayed one.
+    holdZone.style.setProperty("--attract-dur", ATTRACT_MS + "ms");
 
     REST_SCALE_PCT = Math.max(0, Number(cfgRestScale.value) || 0);
     REST_SCALE_MS = Math.max(100, Number(cfgRestScaleMs.value) || 100);
@@ -1570,9 +1575,9 @@ Passer for barn fra 7-10 år</div>
     shapeLayer.classList.add("clutter-in");
     const total = clutterTiming(CLUTTER_IN_MS, false);
     applyShapes();
-    // The circle starts pulsing as the last shape lands.
+    // The circle starts pulsing as the last shape lands. Its cycle comes from
+    // --attract-dur, which readConfig() keeps current.
     stopAttract();
-    holdZone.style.setProperty("--attract-dur", ATTRACT_MS + "ms");
     attractTimer = window.setTimeout(function () {
       attractTimer = null;
       // The pile is complete, so settle the stacking for good. Normally the
