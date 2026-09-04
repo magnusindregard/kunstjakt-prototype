@@ -575,6 +575,21 @@
     opacity: 0;
     transform-origin: center center;
   }
+  /* A piece that has landed holds its own place rather than leaning on the
+     burst animation's fill, and answers a tap; see throwFrom(). The layer
+     itself stays pointer-events: none, so only the pieces catch anything, and
+     one still in the air is not one of them. No cursor change: the whole point
+     is that nothing announces this. */
+  #burst .cshape.settled { opacity: 1; pointer-events: auto; }
+  /* The screen only holds so much confetti; the oldest burst is taken away
+     when a new one lands on a full screen, and it goes quietly rather than
+     blinking out from under whoever is playing. */
+  #burst .cshape.leaving {
+    animation: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--echo-fade, 500ms) ease;
+  }
   /* Until the burst plays the pieces are collapsed on the origin anyway, but
      the resting animation would still be ticking; freeze it until then. */
   #burst .bob, #burst .sway, #burst .pulse { animation-play-state: paused; }
@@ -1754,6 +1769,7 @@ Passer for barn fra 7-10 år</div>
   function logout() {
     clearAllTimers();
     stopStatusTicker();
+    clearEchoes();   // nobody is playing any more; see the confetti below
     user = null;
     // `visits` deliberately survives logout: every countdown now ends the
     // session, so alternating find/answer across sessions is what makes both
@@ -1958,13 +1974,207 @@ Passer for barn fra 7-10 år</div>
     readConfig();
     screens.correct.classList.remove("play");
     showScreen(isCorrect ? "correct" : "wrong");
-    if (isCorrect) {
-      void screens.correct.offsetWidth; // replay the burst from its first frame
-      screens.correct.classList.add("play");
-    }
-    // Every countdown that runs out ends the session on the idle screen.
+    if (isCorrect) playBurst();
+    startResultCountdown();
+  }
+
+  /* The result screen's countdown is the inactivity countdown every other
+     screen here has, and it behaves like one: anything the visitor does on the
+     screen puts it back to the top — which is what keeps the confetti below
+     playable. Left alone it runs out and ends the session on the idle screen,
+     the way it always has. */
+  function startResultCountdown() {
+    if (resultTimer) window.clearTimeout(resultTimer);
     resultTimer = window.setTimeout(logout, RESULT_DISPLAY_MS);
   }
+
+  /* ================= The confetti is a toy =================
+     Hidden, and only for whoever pokes the screen while "Herlig" is up: once a
+     piece has landed it answers a tap by throwing a whole new burst out of
+     itself. Nothing that is already lying there moves — the new confetti lands
+     on top of it — so the pile grows with every tap, and the screen the design
+     draws is only ever the first frame of it.
+
+     Each burst is the authored pile again: the same shapes, the same
+     choreography, the same spread — recentred on the piece that was tapped and
+     scaled by ECHO_SCALE, so a poke throws out something smaller than whatever
+     threw the piece being poked. Colours move one step around each shape's own
+     ring per burst, so the new pile comes back wearing the last one's colours.
+
+     Nothing listens while a piece is still flying, so a tap always has a
+     visible thing under it, and every fresh visit to the screen clears the
+     whole game away and starts from the authored frame. */
+  const ECHO_SCALE = 0.6;    // a new burst, against the one its shape came from
+  const MAX_ECHOES = 6;      // ...how many of them the screen holds at once
+  const ECHO_FADE_MS = 500;  // ...and how long the oldest takes to leave again
+
+  /* The same silhouette in every colour the asset set draws it in. The pebble
+     is drawn at three sizes, but a piece's box is what sets its size — the SVG
+     scales to fill it — so the size a file was drawn at means nothing here and
+     the small pebble is simply the lightblue one. Two shapes have no second
+     colour: the curl and the splash in the corner keep the one they have. */
+  const COLOUR_RINGS = [
+    ["burst-star-pink.svg", "burst-star-orange.svg", "burst-star-yellow.svg",
+     "burst-star-lightblue.svg", "burst-star-blue.svg", "burst-star-darkgreen.svg",
+     "burst-star-lilac.svg"],
+    ["burst-starbig-pink.svg", "burst-star-green.svg"],
+    ["burst-blob-blue.svg", "burst-blob-yellow.svg", "burst-blob-pink.svg",
+     "burst-blob-lilac.svg", "burst-blob-green.svg"],
+    ["burst-pebble-lightblue.svg", "burst-pebble-lilac.svg"],
+    ["burst-cloud.png", "burst-cloud-lightblue.svg", "burst-cloud-lightgreen.svg"],
+    ["shape-splat-pink.svg", "shape-splat-lilac.svg"],
+    ["shape-squiggle-lilac.svg", "shape-squiggle-darkgreen.svg",
+     "shape-squiggle-lightgreen.svg"]
+  ];
+  const SAME_SHAPE = { "shape-pebble2-lightblue.svg": "burst-pebble-lightblue.svg" };
+  const RING_OF = {};
+  COLOUR_RINGS.forEach(function (ring) {
+    ring.forEach(function (file) { RING_OF[file] = ring; });
+  });
+
+  const burstLayer = document.getElementById("burst");
+  /* The authored pile: where every piece rests, how big it is and what colour
+     it wears. It is both the frame the design draws and the cut-out every later
+     burst is stamped from. */
+  const TEMPLATE = Array.prototype.map.call(
+    burstLayer.querySelectorAll(".cshape"), function (el) {
+      return {
+        el: el,
+        src: el.querySelector("img").getAttribute("src"),
+        w: parseFloat(el.style.width),
+        h: parseFloat(el.style.height),
+        cx: parseFloat(el.style.left) + parseFloat(el.style.width) / 2,
+        cy: parseFloat(el.style.top) + parseFloat(el.style.height) / 2
+      };
+    });
+
+  /* Where the middle of that pile is. An echo is hung off this and not off the
+     shape the design bursts out of: the authored pile lies well to one side of
+     the suspense shape, and a tap should throw confetti around the piece that
+     was tapped rather than off to its right. */
+  const PILE = (function () {
+    let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
+    TEMPLATE.forEach(function (t) {
+      left = Math.min(left, t.cx - t.w / 2);
+      right = Math.max(right, t.cx + t.w / 2);
+      top = Math.min(top, t.cy - t.h / 2);
+      bottom = Math.max(bottom, t.cy + t.h / 2);
+    });
+    return { cx: (left + right) / 2, cy: (top + bottom) / 2 };
+  })();
+
+  const ASSET_DIR = TEMPLATE[0].src.slice(0, TEMPLATE[0].src.lastIndexOf("/") + 1);
+  // Warm every colour a piece can turn into, so the first tap does not throw
+  // out a pile of images that have yet to load.
+  COLOUR_RINGS.forEach(function (ring) {
+    ring.forEach(function (file) { (new Image()).src = ASSET_DIR + file; });
+  });
+
+  // Where each piece on screen is and how big a burst it can throw. Templates
+  // are full size; everything thrown since is a fraction of whatever threw it.
+  const pieceInfo = new Map();
+  TEMPLATE.forEach(function (t) {
+    pieceInfo.set(t.el, { cx: t.cx, cy: t.cy, scale: 1 });
+  });
+
+  let echoes = [];      // the bursts thrown since the screen opened, oldest first
+  let generation = 0;   // how far the colours have travelled around their rings
+
+  function nextColour(src) {
+    const file = src.slice(src.lastIndexOf("/") + 1);
+    const key = SAME_SHAPE[file] || file;
+    const ring = RING_OF[key];
+    if (!ring) return src;
+    return ASSET_DIR + ring[(ring.indexOf(key) + 1) % ring.length];
+  }
+  function colourFor(template, steps) {
+    let src = template.src;
+    for (let i = 0; i < steps; i++) src = nextColour(src);
+    return src;
+  }
+  // Motion turned down leaves the pieces lying where they belong with no flight
+  // to wait out, so there is no animation to end and nothing to wait for.
+  function settlesInstantly() { return !!(reduceMotion && reduceMotion.matches); }
+
+  /* The burst that opens the screen: the authored pile, out of the suspense
+     shape, in the authored colours, with whatever the last visitor threw taken
+     away again. */
+  function playBurst() {
+    clearEchoes();
+    void screens.correct.offsetWidth; // replay the burst from its first frame
+    screens.correct.classList.add("play");
+    TEMPLATE.forEach(function (t) {
+      t.el.classList.toggle("settled", settlesInstantly());
+    });
+  }
+
+  // Taking a burst away again: at once when the screen is being reset, on a
+  // fade when it is only making room for a newer one.
+  function clearEchoes() {
+    echoes.forEach(function (pieces) { dropEcho(pieces, true); });
+    echoes = [];
+    generation = 0;
+  }
+  function dropEcho(pieces, now) {
+    pieces.forEach(function (el) {
+      pieceInfo.delete(el);
+      if (now || settlesInstantly()) { removePiece(el); return; }
+      el.style.setProperty("--echo-fade", ECHO_FADE_MS + "ms");
+      el.classList.add("leaving");
+      window.setTimeout(function () { removePiece(el); }, ECHO_FADE_MS);
+    });
+  }
+  function removePiece(el) {
+    if (el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  /* A tap: stamp the whole pile out again, centred on the piece that was hit.
+     The new pieces are appended, so they burst out over everything already
+     lying there and nothing that has landed is disturbed. */
+  function throwFrom(el) {
+    const from = pieceInfo.get(el);
+    const scale = from.scale * ECHO_SCALE;
+    const frag = document.createDocumentFragment();
+    generation += 1;
+    const thrown = TEMPLATE.map(function (t) {
+      const piece = t.el.cloneNode(true);
+      const w = t.w * scale, h = t.h * scale;
+      // The pile keeps its shape, shrunk and laid around the tapped piece; each
+      // piece then flies out of that piece, which is what --sx/--sy says.
+      const cx = from.cx + (t.cx - PILE.cx) * scale;
+      const cy = from.cy + (t.cy - PILE.cy) * scale;
+      const sx = from.cx - cx, sy = from.cy - cy;
+      piece.style.left = (cx - w / 2) + "px";
+      piece.style.top = (cy - h / 2) + "px";
+      piece.style.width = w + "px";
+      piece.style.height = h + "px";
+      piece.style.setProperty("--sx", sx + "px");
+      piece.style.setProperty("--sy", sy + "px");
+      piece.classList.toggle("settled", settlesInstantly());
+      piece.querySelector("img").setAttribute("src", colourFor(t, generation));
+      pieceInfo.set(piece, { cx: cx, cy: cy, scale: scale });
+      frag.appendChild(piece);
+      return piece;
+    });
+    // #correct still carries .play, so a piece bursts out the moment it is in
+    // the document — no replay, and nothing already on screen restarts.
+    burstLayer.appendChild(frag);
+    echoes.push(thrown);
+    while (echoes.length > MAX_ECHOES) dropEcho(echoes.shift(), false);
+    applyRestingAnimation();  // the new pieces drift on rhythms of their own
+  }
+
+  burstLayer.addEventListener("animationend", function (e) {
+    if (e.animationName !== "burstOut") return;
+    e.target.classList.add("settled");   // landed, and so tappable
+  });
+
+  burstLayer.addEventListener("click", function (e) {
+    const el = e.target.closest(".cshape.settled");
+    if (!el || !pieceInfo.has(el)) return;
+    startResultCountdown();   // playing is not sitting still
+    throwFrom(el);
+  });
 
   document.getElementById("btn-ferdig").addEventListener("click", logout);
   document.getElementById("btn-again").addEventListener("click", backToTask);
