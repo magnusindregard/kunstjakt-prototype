@@ -2214,25 +2214,29 @@ Passer for barn fra 7-10 år</div>
   document.getElementById("btn-ferdig").addEventListener("click", logout);
   document.getElementById("btn-again").addEventListener("click", backToTask);
 
-  /* "Se oppgaven på nytt", from the wrong-answer screen. It hands back the first
-     task screen — the one that only asks and sends you off to look — and not the
-     options: another run at the same four buttons is guessing, and the point of
-     the hunt is that the answer is in the room.
+  /* "Se oppgaven på nytt", from the wrong-answer screen. It hands back the
+     options — the screen the wrong answer was given on — so the next guess is
+     one button away. It used to hand back the find screen instead, on the
+     grounds that the answer is out in the room rather than among the four
+     buttons; the client asked for the options.
 
      The user stays recorded as asked, because they have been: they missed the
      answer rather than never having seen the question, so their next login hands
-     them the options again rather than starting the task over. */
+     them the options again too. */
   function backToTask() {
     clearAllTimers();
-    isAnswerMode = false;
-    taskScreen.classList.remove("answer-mode");
-    taskScreen.classList.add("find-mode");
+    isAnswerMode = true;
+    taskScreen.classList.add("answer-mode");
+    taskScreen.classList.remove("find-mode");
     qFind.textContent = QUESTION_FIND;
     qAnswer.textContent = QUESTION_ANSWER;
     fadeTask(1, 0, "auto");   // content is already visible; nothing to fade in
-    showScreen("task", "taskfind");
+    showScreen("task", "taskanswer");
     readConfig();
-    startTaskCountdown(false);
+    // Arriving on the options with nothing held, so they get the same grace as
+    // every other such arrival: no pile and no circle for the first few
+    // seconds, and the four buttons to themselves. See clutterAfterDelay().
+    startTaskCountdown(true);
   }
 
   /* ================= Timers ================= */
