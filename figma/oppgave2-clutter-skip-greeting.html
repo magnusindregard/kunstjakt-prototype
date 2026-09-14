@@ -1283,7 +1283,15 @@ Passer for barn fra 7-10 år</div>
   let current = null;
   let code = "";
   let user = null;          // { code, name, avatar }
-  let visits = 0;           // task visits; odd = find, even = answer
+  /* Who has already been asked. This stands in for the one column a real back
+     end would keep per user, and it behaves like one for as long as the room is
+     open: a code goes in the first time the question is put to that user, and
+     the only thing that takes it out again is answering correctly. Every login
+     a code in here makes lands on the options, however many times that is.
+
+     It lives in the page, so reloading the prototype empties the room and every
+     user is a first-timer again — which is how you start a fresh demo. */
+  const asked = new Set();  // user codes that have had the question, unanswered
   let isAnswerMode = false;
   let holding = false;
   let idleTimer = null, idleEndsAt = null;
@@ -1790,9 +1798,9 @@ Passer for barn fra 7-10 år</div>
     hideBar();
     clearEchoes();   // nobody is playing any more; see the confetti below
     user = null;
-    // `visits` deliberately survives logout: every countdown now ends the
-    // session, so alternating find/answer across sessions is what makes both
-    // states of the task screen reachable.
+    // What each user has been asked deliberately survives logout — the login is
+    // what reads it — and survives a switch of user too: `asked` is keyed by
+    // code, not by whoever happens to be logged in.
     resetCode();
     showScreen("idle");
   }
@@ -1868,10 +1876,10 @@ Passer for barn fra 7-10 år</div>
     holding = false;
     holdZone.classList.remove("active");
     fadeTask(0, 0, "none");
-    // `visits` is odd once the task has been shown once: the user is back with
-    // the answer, and a greeting asking them to hold for the options is only a
-    // step between them and the options. Hand those over instead.
-    if (visits % 2 === 1) { enterAnswer(); return; }
+    // A user who has already been asked is back with the answer, and a greeting
+    // asking them to hold for the options is only a step between them and the
+    // options. Hand those over instead.
+    if (asked.has(user.code)) { enterAnswer(); return; }
     greetSub.textContent = GREET_FIRST;
     showScreen("hei");
     armLogout("greeting");
@@ -1884,11 +1892,10 @@ Passer for barn fra 7-10 år</div>
 
   /* The returning user's first screen: the question and its options, already
      visible, with the pile coming in over them from the first frame — no
-     greeting, and no hold to get here. The visit is counted here rather than in
-     onHoldStart, which is what usually counts it, so find and answer keep
-     alternating across sessions. The circle still clears the pile. */
+     greeting, and no hold to get here. Only a user who has already been asked
+     ever reaches it, so there is nothing here to record. The circle still
+     clears the pile. */
   function enterAnswer() {
-    visits += 1;
     isAnswerMode = true;
     taskScreen.classList.add("answer-mode");
     taskScreen.classList.remove("find-mode");
@@ -1928,8 +1935,11 @@ Passer for barn fra 7-10 år</div>
     // pile to send away — and sends it away on the fast clutter-out curve
     // rather than the screen-to-screen one. See placeShapes().
     if (current !== "task") {
-      visits += 1;
-      isAnswerMode = (visits % 2 === 0); // 1st visit: find it; 2nd: answer it
+      // The first hold this user makes puts the question and sends them off to
+      // look; every hold after it, until they answer correctly, hands over the
+      // options. Asking is what records them.
+      isAnswerMode = asked.has(user.code);
+      asked.add(user.code);
       taskScreen.classList.toggle("answer-mode", isAnswerMode);
       taskScreen.classList.toggle("find-mode", !isAnswerMode);
       qFind.textContent = QUESTION_FIND;
@@ -1993,6 +2003,9 @@ Passer for barn fra 7-10 år</div>
 
   function showResult(isCorrect) {
     readConfig();
+    // The one thing that clears a user's row. Task done: their next login opens
+    // with the question again, the way their first one did.
+    if (isCorrect && user) asked.delete(user.code);
     screens.correct.classList.remove("play");
     showScreen(isCorrect ? "correct" : "wrong");
     if (isCorrect) playBurst();
@@ -2201,27 +2214,29 @@ Passer for barn fra 7-10 år</div>
   document.getElementById("btn-ferdig").addEventListener("click", logout);
   document.getElementById("btn-again").addEventListener("click", backToTask);
 
-  /* "Se oppgaven på nytt", from the wrong-answer screen. It hands back the first
-     task screen — the one that only asks and sends you off to look — and not the
-     options: another run at the same four buttons is guessing, and the point of
-     the hunt is that the answer is in the room.
+  /* "Se oppgaven på nytt", from the wrong-answer screen. It hands back the
+     options — the screen the wrong answer was given on — so the next guess is
+     one button away. It used to hand back the find screen instead, on the
+     grounds that the answer is out in the room rather than among the four
+     buttons; the client asked for the options.
 
-     The visit is counted here even though no hold opened the screen, because
-     `visits` is what makes find and answer alternate. The find screen has just
-     been shown, so counting it is what leaves the next hold offering the
-     options — and what has the greeting ask "Fant du svaret?" in between. */
+     The user stays recorded as asked, because they have been: they missed the
+     answer rather than never having seen the question, so their next login hands
+     them the options again too. */
   function backToTask() {
     clearAllTimers();
-    visits += 1;
-    isAnswerMode = false;
-    taskScreen.classList.remove("answer-mode");
-    taskScreen.classList.add("find-mode");
+    isAnswerMode = true;
+    taskScreen.classList.add("answer-mode");
+    taskScreen.classList.remove("find-mode");
     qFind.textContent = QUESTION_FIND;
     qAnswer.textContent = QUESTION_ANSWER;
     fadeTask(1, 0, "auto");   // content is already visible; nothing to fade in
-    showScreen("task", "taskfind");
+    showScreen("task", "taskanswer");
     readConfig();
-    startTaskCountdown(false);
+    // Arriving on the options with nothing held, so they get the same grace as
+    // every other such arrival: no pile and no circle for the first few
+    // seconds, and the four buttons to themselves. See clutterAfterDelay().
+    startTaskCountdown(true);
   }
 
   /* ================= Timers ================= */
@@ -2290,7 +2305,8 @@ Passer for barn fra 7-10 år</div>
     debugStatus.textContent =
       "Skjerm: " + current + "\nStatus: " + state + "\n" + detail +
       "\nmodus: " + (isAnswerMode ? "svar" : "finn") +
-      "\nbruker: " + (user ? user.name + " (" + user.code + ")" : "-");
+      "\nbruker: " + (user ? user.name + " (" + user.code + ")" : "-") +
+      "\nspurt: " + (asked.size ? Array.from(asked).join(", ") : "ingen");
   }
 
   /* ================= Boot ================= */
