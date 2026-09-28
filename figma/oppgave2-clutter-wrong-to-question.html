@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Kunstjakten – oppgave 2 med clutter, rett til svaret, uten nedtellingslinje (16:9)</title>
+<title>Kunstjakten – oppgave 2 med clutter, feil svar tilbake til spørsmålet (16:9)</title>
 
 <!-- Google Analytics, for the test runs of this prototype. Every screen but
      the idle one posts a bare event; see trackScreen() below. -->
@@ -29,7 +29,7 @@
     --lightgreen: #b3d181;
     --lilac: #deafd2;
     --orange: #ffa744;      /* hold-circle orange */
-    --orange-soft: #ffbd72; /* button shadow */
+    --orange-soft: #ffbd72; /* button shadow + progress bar */
     --border: #949494;
     --font: 'Museet Sans Text', 'Helvetica Neue', Arial, sans-serif;
 
@@ -151,7 +151,7 @@
             what buries the artwork.
        35   the chrome: the orange circle and the profile lock-up, the two things
             the pile must never cover. */
-  #hold-zone, #profile { z-index: 35; }
+  #hold-zone, #profile, #bar { z-index: 35; }
   .bob, .sway, .pulse { width: 100%; height: 100%; }
   .shape img, .cshape img { width: 100%; height: 100%; display: block; }
 
@@ -312,6 +312,18 @@
     letter-spacing: -0.4182px;
     padding-bottom: 2px;
   }
+
+  /* ---------- Progress / countdown bar ---------- */
+  #bar {
+    position: absolute;
+    left: 0;
+    top: 884px;
+    height: 24px;
+    width: 1236px;
+    background: var(--orange-soft);
+    display: none;
+  }
+  #bar.visible { display: block; }
 
   /* ---------- Profile lock-up (top right) ----------
      Both rows are right-aligned on x=1489 in the 1600-wide frame, so the block
@@ -903,6 +915,8 @@ Passer for barn fra 7-10 år</div>
       <div class="switch"><button type="button" id="btn-switch-user">Ikke deg? <img src="assets/v2/icon-arrow-right.svg" alt=""></button></div>
     </div>
 
+    <div id="bar"></div>
+
   </div>
 </div>
 
@@ -1246,6 +1260,7 @@ Passer for barn fra 7-10 år</div>
 
   const holdZone = document.getElementById("hold-zone");
   const profile = document.getElementById("profile");
+  const bar = document.getElementById("bar");
   const greetSub = document.getElementById("greet-sub");
   const codeDigits = document.getElementById("code-digits");
   const keypad = document.getElementById("keypad");
@@ -1293,6 +1308,7 @@ Passer for barn fra 7-10 år</div>
   let settleTimer = null, settleEndsAt = null;   // waiting for the pile to land
   let fadeOutTimer = null, fadeOutEndsAt = null;
   let resultTimer = null, suspenseTimer = null, logoutTimer = null, logoutEndsAt = null;
+  let barRaf = null, barStartedAt = null, barTotalMs = 0;
   let statusTicker = null;
 
   /* ---- Responsive scale (artboard is 1600x900) ---- */
@@ -1699,6 +1715,7 @@ Passer for barn fra 7-10 år</div>
     const lands = clutterAfterDelay(hideCircle);
     settleEndsAt = Date.now() + lands;
     settleTimer = window.setTimeout(startFadeOut, lands);
+    startBar(lands + FADE_OUT_MS);
   }
   // Cancelling always hands the circle back: nothing is pending for it to wait
   // for, and it is hidden nowhere else.
@@ -1719,14 +1736,14 @@ Passer for barn fra 7-10 år</div>
   /* ================= Screen switching ================= */
   // Which chrome each screen carries. `shapes` names the SHAPE_LAYOUT entry.
   const CHROME = {
-    idle:      { shapes: "idle",       profile: false, hold: false },
-    login:     { shapes: "login",      profile: false, hold: false },
-    loginfail: { shapes: "loginfail",  profile: false, hold: false },
-    hei:       { shapes: "hei",        profile: true,  hold: true  },
-    task:      { shapes: "taskfind",   profile: true,  hold: true  },
-    suspense:  { shapes: "suspense",   profile: false, hold: false },
-    correct:   { shapes: "correct",    profile: false, hold: false },
-    wrong:     { shapes: "wrong",      profile: true,  hold: false }
+    idle:      { shapes: "idle",       bar: false, profile: false, hold: false },
+    login:     { shapes: "login",      bar: true,  profile: false, hold: false },
+    loginfail: { shapes: "loginfail",  bar: true,  profile: false, hold: false },
+    hei:       { shapes: "hei",        bar: true,  profile: true,  hold: true  },
+    task:      { shapes: "taskfind",   bar: true,  profile: true,  hold: true  },
+    suspense:  { shapes: "suspense",   bar: false, profile: false, hold: false },
+    correct:   { shapes: "correct",    bar: true,  profile: false, hold: false },
+    wrong:     { shapes: "wrong",      bar: true,  profile: true,  hold: false }
   };
 
   // The one shape that is in view on the suspense screen, and so the one the
@@ -1748,6 +1765,7 @@ Passer for barn fra 7-10 år</div>
     });
     profile.classList.toggle("visible", !!chrome.profile && !!user);
     holdZone.style.display = chrome.hold ? "block" : "none";
+    if (!chrome.bar) hideBar();
     current = id;
     trackScreen(id);
   }
@@ -1766,7 +1784,7 @@ Passer for barn fra 7-10 år</div>
     correct:   "screen_correct",
     wrong:     "screen_wrong"
   };
-  const PROTOTYPE_ID = "oppgave2-clutter-no-bar";
+  const PROTOTYPE_ID = "oppgave2-clutter-wrong-to-question";
   function trackScreen(id) {
     const name = SCREEN_EVENTS[id];
     if (name && typeof window.gtag === "function") {
@@ -1791,6 +1809,7 @@ Passer for barn fra 7-10 år</div>
   function logout() {
     clearAllTimers();
     stopStatusTicker();
+    hideBar();
     clearEchoes();   // nobody is playing any more; see the confetti below
     user = null;
     // What each user has been asked deliberately survives logout — the login is
@@ -2004,6 +2023,7 @@ Passer for barn fra 7-10 år</div>
     readConfig();
     holding = true;
     holdZone.classList.add("active");
+    hideBar(); // nothing is counting down while the finger is on the circle
     // Destination first, departure second. showScreen() is told to keep the
     // clutter alive as it passes through, so exitClutter() below still has a
     // pile to send away — and sends it away on the fast clutter-out curve
@@ -2063,6 +2083,7 @@ Passer for barn fra 7-10 år</div>
 
   function selectAnswer(answer) {
     clearAllTimers();
+    hideBar();
     holding = false;
     holdZone.classList.remove("active");
     readConfig();
@@ -2094,6 +2115,7 @@ Passer for barn fra 7-10 år</div>
   function startResultCountdown() {
     if (resultTimer) window.clearTimeout(resultTimer);
     resultTimer = window.setTimeout(logout, RESULT_DISPLAY_MS);
+    startBar(RESULT_DISPLAY_MS);
   }
 
   /* ================= The confetti is a toy =================
@@ -2287,29 +2309,25 @@ Passer for barn fra 7-10 år</div>
   document.getElementById("btn-ferdig").addEventListener("click", logout);
   document.getElementById("btn-again").addEventListener("click", backToTask);
 
-  /* "Se oppgaven på nytt", from the wrong-answer screen. It hands back the
-     options — the screen the wrong answer was given on — so the next guess is
-     one button away. It used to hand back the find screen instead, on the
-     grounds that the answer is out in the room rather than among the four
-     buttons; the client asked for the options.
+  /* "Se oppgaven på nytt", from the wrong-answer screen. This variant hands
+     back the question screen — the one that only asks and sends you off to
+     look — and not the options: the answer is out in the room, and another run
+     at the same four buttons is only guessing.
 
      The user stays recorded as asked, because they have been: they missed the
      answer rather than never having seen the question, so their next login hands
-     them the options again too. */
+     them the options rather than starting the task over. */
   function backToTask() {
     clearAllTimers();
-    isAnswerMode = true;
-    taskScreen.classList.add("answer-mode");
-    taskScreen.classList.remove("find-mode");
+    isAnswerMode = false;
+    taskScreen.classList.remove("answer-mode");
+    taskScreen.classList.add("find-mode");
     qFind.textContent = QUESTION_FIND;
     qAnswer.textContent = QUESTION_ANSWER;
     fadeTask(1, 0, "auto");   // content is already visible; nothing to fade in
-    showScreen("task", "taskanswer");
+    showScreen("task", "taskfind");
     readConfig();
-    // Arriving on the options with nothing held, so they get the same grace as
-    // every other such arrival: no pile and no circle for the first few
-    // seconds, and the four buttons to themselves. See clutterAfterDelay().
-    startTaskCountdown(true);
+    startTaskCountdown(false);
   }
 
   /* ================= Timers ================= */
@@ -2323,10 +2341,9 @@ Passer for barn fra 7-10 år</div>
     idleEndsAt = settleEndsAt = fadeOutEndsAt = null;
     clearLogout();
   }
-  // Inactivity logout. Nothing on screen shows it running: the countdown is
-  // silent, and the session simply ends when it runs out. Each screen family
-  // carries its own length, so the keypad can be patient where the greeting
-  // is not.
+  // Inactivity logout. The bar visualises whatever countdown currently owns the
+  // screen, so re-arming the timer restarts it too. Each screen family carries
+  // its own length, so the keypad can be patient where the greeting is not.
   function armLogout(which) {
     clearLogout();
     readConfig();
@@ -2335,10 +2352,35 @@ Passer for barn fra 7-10 år</div>
              : LOGOUT_LOGIN_MS;
     logoutEndsAt = Date.now() + ms;
     logoutTimer = window.setTimeout(logout, ms);
+    if (CHROME[current] && CHROME[current].bar) startBar(ms);
   }
   function clearLogout() {
     if (logoutTimer) { window.clearTimeout(logoutTimer); logoutTimer = null; }
     logoutEndsAt = null;
+  }
+
+  /* ================= Progress bar ================= */
+  function startBar(totalMs) {
+    cancelBar();
+    barTotalMs = totalMs;
+    barStartedAt = Date.now();
+    bar.classList.add("visible");
+    tickBar();
+  }
+  function tickBar() {
+    const elapsed = Date.now() - barStartedAt;
+    const frac = barTotalMs > 0 ? Math.min(1, elapsed / barTotalMs) : 1;
+    bar.style.width = (1600 * (1 - frac)) + "px";
+    if (frac < 1) barRaf = requestAnimationFrame(tickBar);
+  }
+  function cancelBar() {
+    if (barRaf) { cancelAnimationFrame(barRaf); barRaf = null; }
+    barStartedAt = null;
+  }
+  function hideBar() {
+    cancelBar();
+    bar.classList.remove("visible");
+    bar.style.width = "1236px";
   }
 
   /* ================= Debug status ================= */

@@ -925,7 +925,9 @@ Passer for barn fra 7-10 år</div>
 <div id="debug-panel">
   <h2>Timeout-mekanikk</h2>
   <label>Oppgaven toner inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
-  <label>Oppgaven toner ut (s)<input type="number" id="cfg-fadeout" value="3" min="1" step="1"></label>
+  <label>Oppgaven toner ut (ms)<input type="number" id="cfg-fadeout" value="6000" min="1" step="100"></label>
+  <label>Hold på knappen før noe skjer, velkomstskjerm (ms)<input type="number" id="cfg-hold-delay" value="700" min="0" step="50"></label>
+  <label>Formene kryper mens du holder, andel av veien (%)<input type="number" id="cfg-hold-creep" value="15" min="0" max="100" step="5"></label>
   <label>Spenningspause (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
   <label>Utlogging ved inaktivitet - loginskjermer (s)<input type="number" id="cfg-logout-login" value="15" min="5" step="5"></label>
   <label>Utlogging ved inaktivitet - greeting (s)<input type="number" id="cfg-logout-greeting" value="15" min="5" step="5"></label>
@@ -1207,7 +1209,13 @@ Passer for barn fra 7-10 år</div>
      what actually runs and these are the same defaults written twice. Change one
      and change the other, or the panel quietly wins. */
   let FADE_IN_MS = 400;
-  let FADE_OUT_MS = 3000;
+  let FADE_OUT_MS = 6000;
+  /* How long a finger has to stay on the circle on the greeting before it
+     does anything. See onHoldStart(). */
+  let HOLD_DELAY_MS = 700;
+  /* ...and how far the shapes creep towards the exit while it waits, as a share
+     of the whole way. See startCreep(). */
+  let HOLD_CREEP_PCT = 15;
   let SUSPENSE_MS = 2500;
   let RESULT_DISPLAY_MS = 12000;
   let LOGOUT_LOGIN_MS = 15000;
@@ -1259,6 +1267,8 @@ Passer for barn fra 7-10 år</div>
   const debugPanel = document.getElementById("debug-panel");
   const cfgFadeIn = document.getElementById("cfg-fade-in");
   const cfgFadeout = document.getElementById("cfg-fadeout");
+  const cfgHoldDelay = document.getElementById("cfg-hold-delay");
+  const cfgHoldCreep = document.getElementById("cfg-hold-creep");
   const cfgSuspense = document.getElementById("cfg-suspense");
   const cfgResult = document.getElementById("cfg-result");
   const cfgLogoutLogin = document.getElementById("cfg-logout-login");
@@ -1319,7 +1329,9 @@ Passer for barn fra 7-10 år</div>
   /* ================= Config ================= */
   function readConfig() {
     FADE_IN_MS = Math.max(0, Number(cfgFadeIn.value) || 0);
-    FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1) * 1000;
+    FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1);
+    HOLD_DELAY_MS = Math.max(0, Number(cfgHoldDelay.value) || 0);
+    HOLD_CREEP_PCT = Math.min(100, Math.max(0, Number(cfgHoldCreep.value) || 0));
     SUSPENSE_MS = Math.max(0, Number(cfgSuspense.value) || 0);
     RESULT_DISPLAY_MS = Math.max(1, Number(cfgResult.value) || 1) * 1000;
     LOGOUT_LOGIN_MS = Math.max(5, Number(cfgLogoutLogin.value) || 5) * 1000;
@@ -1344,7 +1356,7 @@ Passer for barn fra 7-10 år</div>
     REST_Y_MS = Math.max(100, Number(cfgRestYMs.value) || 100);
     applyRestingAnimation();
   }
-  [cfgFadeIn, cfgFadeout, cfgSuspense, cfgResult, cfgLogoutLogin, cfgLogoutGreeting,
+  [cfgFadeIn, cfgFadeout, cfgHoldDelay, cfgHoldCreep, cfgSuspense, cfgResult, cfgLogoutLogin, cfgLogoutGreeting,
    cfgClutterIn, cfgClutterOut, cfgClutterStagger, cfgClutterDelay, cfgAttractMs,
    cfgRestScale, cfgRestScaleMs, cfgRestX, cfgRestXMs, cfgRestY, cfgRestYMs]
     .forEach(function (i) { i.addEventListener("change", readConfig); });
@@ -1402,15 +1414,16 @@ Passer for barn fra 7-10 år</div>
   function applyShapes() {
     const layout = clutterOn ? clutterLayout : (SHAPE_LAYOUT[currentShapeKey] || {});
     Object.keys(shapeEls).forEach(function (name) {
-      const p = layout[name] || PARK[name];
-      // Optional fifth number: rotation. Origin is the shape's top left corner
-      // (transform-origin: 0 0), so x,y is the anchor the rotation turns about
-      // rather than a corner of the finished box — the same anchor Figma uses.
-      const spin = p[4] ? " rotate(" + p[4] + "deg)" : "";
-      shapeEls[name].style.transform =
-        "translate(" + p[0] + "px," + p[1] + "px)" + spin +
-        " scale(" + p[2] / SHAPE_BASE[name][0] + ")";
+      shapeEls[name].style.transform = transformFor(name, layout[name] || PARK[name]);
     });
+  }
+  function transformFor(name, p) {
+    // Optional fifth number: rotation. Origin is the shape's top left corner
+    // (transform-origin: 0 0), so x,y is the anchor the rotation turns about
+    // rather than a corner of the finished box — the same anchor Figma uses.
+    const spin = p[4] ? " rotate(" + p[4] + "deg)" : "";
+    return "translate(" + p[0] + "px," + p[1] + "px)" + spin +
+      " scale(" + p[2] / SHAPE_BASE[name][0] + ")";
   }
 
   function placeShapes(layoutKey, instant, keepClutter) {
@@ -1565,6 +1578,7 @@ Passer for barn fra 7-10 år</div>
       const el = shapeEls[name];
       el.style.transitionDuration = "";
       el.style.transitionDelay = "";
+      el.style.transitionTimingFunction = "";   // left by the creep; see startCreep()
       el.style.zIndex = "";
     });
   }
@@ -1897,10 +1911,90 @@ Passer for barn fra 7-10 år</div>
     if (pointerEvents) taskLayer.style.pointerEvents = pointerEvents;
   }
 
+  /* On the greeting — the first place anyone meets the circle — a touch does
+     nothing until the finger has stayed on it for HOLD_DELAY_MS. Let go sooner
+     and nothing happens at all, and the greeting carries on as if untouched:
+     that is the lesson, that this is a button you hold rather than tap. The
+     circle still shows it is pressed, so the wait reads as the button working
+     rather than ignoring you. Everywhere after the greeting it answers at once. */
+  let holdDelayTimer = null;
   function onHoldStart(e) {
     if (e) e.preventDefault();
     if (!user) return;
     if (current !== "hei" && current !== "task") return;
+    readConfig();
+    if (current === "hei" && HOLD_DELAY_MS > 0) {
+      cancelHoldDelay();
+      holdZone.classList.add("active");
+      startCreep();
+      holdDelayTimer = window.setTimeout(function () {
+        holdDelayTimer = null;
+        revealTask();
+      }, HOLD_DELAY_MS);
+      return;
+    }
+    revealTask();
+  }
+
+  // A press let go before its delay ran out, or overtaken by something else.
+  function cancelHoldDelay() {
+    if (!holdDelayTimer) return;
+    window.clearTimeout(holdDelayTimer);
+    holdDelayTimer = null;
+    holdZone.classList.remove("active");
+    settleCreep();
+  }
+
+  /* A still screen for the whole delay read as a button that had not noticed
+     the finger. So while it waits the pile starts to leave: every shape sets
+     off for where the reveal will send it, slowly, and covers HOLD_CREEP_PCT of
+     the way by the time the delay is up. It eases in, and hands over to the
+     reveal's departure — fastest in its first frame — without a stall: a
+     transition interrupted mid-way starts the next one from wherever it has got
+     to. Let go early and the pile closes up again. */
+  const CREEP_EASE = "cubic-bezier(0.5, 0, 1, 1)";
+  const CREEP_BACK_MS = 300;
+  let crept = false, creepTimer = null;
+  function startCreep() {
+    clearCreep();
+    if (!clutterOn || !motion(HOLD_DELAY_MS) || HOLD_CREEP_PCT <= 0) return;
+    crept = true;
+    creepShapes(HOLD_DELAY_MS, CREEP_EASE, HOLD_CREEP_PCT / 100);
+  }
+  function settleCreep() {
+    if (!crept) return;
+    creepShapes(CREEP_BACK_MS, "ease-out", 0);
+    creepTimer = window.setTimeout(clearCreep, CREEP_BACK_MS);
+  }
+  // Hands the easing back to the clutter classes. The durations and delays the
+  // creep wrote are overwritten by whatever moves the shapes next.
+  function clearCreep() {
+    if (creepTimer) { window.clearTimeout(creepTimer); creepTimer = null; }
+    crept = false;
+    Object.keys(shapeEls).forEach(function (name) {
+      shapeEls[name].style.transitionTimingFunction = "";
+    });
+  }
+  // Every shape `frac` of the way from the pile to the layout the reveal will
+  // put it in — the same choice revealTask() makes.
+  function creepShapes(ms, ease, frac) {
+    const from = clutterLayout || {};
+    const to = SHAPE_LAYOUT[asked.has(user.code) ? "taskanswer" : "taskfind"] || {};
+    Object.keys(shapeEls).forEach(function (name) {
+      const a = from[name] || PARK[name], b = to[name] || PARK[name];
+      const p = [0, 1, 2, 3, 4].map(function (i) {
+        return (a[i] || 0) + ((b[i] || 0) - (a[i] || 0)) * frac;
+      });
+      const el = shapeEls[name];
+      el.style.transitionDuration = ms + "ms";
+      el.style.transitionDelay = "0ms";
+      el.style.transitionTimingFunction = ease;
+      el.style.transform = transformFor(name, p);
+    });
+  }
+
+  function revealTask() {
+    clearCreep();   // the shapes carry on from where they crept to, at full speed
     clearAllTimers();
     readConfig();
     holding = true;
@@ -1927,6 +2021,7 @@ Passer for barn fra 7-10 år</div>
   }
 
   function onHoldEnd() {
+    cancelHoldDelay();
     if (!holding) return;
     holding = false;
     holdZone.classList.remove("active");
@@ -2222,6 +2317,7 @@ Passer for barn fra 7-10 år</div>
     });
     idleTimer = settleTimer = fadeOutTimer = resultTimer = suspenseTimer = null;
     cancelClutterDelay();
+    cancelHoldDelay();
     idleEndsAt = settleEndsAt = fadeOutEndsAt = null;
     clearLogout();
   }
