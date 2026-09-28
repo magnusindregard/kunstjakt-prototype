@@ -925,7 +925,8 @@ Passer for barn fra 7-10 år</div>
 <div id="debug-panel">
   <h2>Timeout-mekanikk</h2>
   <label>Oppgaven toner inn (ms)<input type="number" id="cfg-fade-in" value="400" min="0" step="50"></label>
-  <label>Oppgaven toner ut (s)<input type="number" id="cfg-fadeout" value="3" min="1" step="1"></label>
+  <label>Oppgaven toner ut (ms)<input type="number" id="cfg-fadeout" value="6000" min="1" step="100"></label>
+  <label>Hold på knappen før noe skjer, velkomstskjerm (ms)<input type="number" id="cfg-hold-delay" value="700" min="0" step="50"></label>
   <label>Spenningspause (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
   <label>Utlogging ved inaktivitet - loginskjermer (s)<input type="number" id="cfg-logout-login" value="15" min="5" step="5"></label>
   <label>Utlogging ved inaktivitet - greeting (s)<input type="number" id="cfg-logout-greeting" value="15" min="5" step="5"></label>
@@ -1208,7 +1209,10 @@ Passer for barn fra 7-10 år</div>
      what actually runs and these are the same defaults written twice. Change one
      and change the other, or the panel quietly wins. */
   let FADE_IN_MS = 400;
-  let FADE_OUT_MS = 3000;
+  let FADE_OUT_MS = 6000;
+  /* How long a finger has to stay on the circle on the greeting before it
+     does anything. See onHoldStart(). */
+  let HOLD_DELAY_MS = 700;
   let SUSPENSE_MS = 2500;
   let RESULT_DISPLAY_MS = 12000;
   let LOGOUT_LOGIN_MS = 15000;
@@ -1261,6 +1265,7 @@ Passer for barn fra 7-10 år</div>
   const debugPanel = document.getElementById("debug-panel");
   const cfgFadeIn = document.getElementById("cfg-fade-in");
   const cfgFadeout = document.getElementById("cfg-fadeout");
+  const cfgHoldDelay = document.getElementById("cfg-hold-delay");
   const cfgSuspense = document.getElementById("cfg-suspense");
   const cfgResult = document.getElementById("cfg-result");
   const cfgLogoutLogin = document.getElementById("cfg-logout-login");
@@ -1322,7 +1327,8 @@ Passer for barn fra 7-10 år</div>
   /* ================= Config ================= */
   function readConfig() {
     FADE_IN_MS = Math.max(0, Number(cfgFadeIn.value) || 0);
-    FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1) * 1000;
+    FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1);
+    HOLD_DELAY_MS = Math.max(0, Number(cfgHoldDelay.value) || 0);
     SUSPENSE_MS = Math.max(0, Number(cfgSuspense.value) || 0);
     RESULT_DISPLAY_MS = Math.max(1, Number(cfgResult.value) || 1) * 1000;
     LOGOUT_LOGIN_MS = Math.max(5, Number(cfgLogoutLogin.value) || 5) * 1000;
@@ -1348,7 +1354,7 @@ Passer for barn fra 7-10 år</div>
     REST_Y_MS = Math.max(100, Number(cfgRestYMs.value) || 100);
     applyRestingAnimation();
   }
-  [cfgFadeIn, cfgFadeout, cfgSuspense, cfgResult, cfgLogoutLogin, cfgLogoutGreeting, cfgLogoutAnswer,
+  [cfgFadeIn, cfgFadeout, cfgHoldDelay, cfgSuspense, cfgResult, cfgLogoutLogin, cfgLogoutGreeting, cfgLogoutAnswer,
    cfgClutterIn, cfgClutterOut, cfgClutterStagger, cfgClutterDelay, cfgAttractMs,
    cfgRestScale, cfgRestScaleMs, cfgRestX, cfgRestXMs, cfgRestY, cfgRestYMs]
     .forEach(function (i) { i.addEventListener("change", readConfig); });
@@ -1921,10 +1927,39 @@ Passer for barn fra 7-10 år</div>
     if (pointerEvents) taskLayer.style.pointerEvents = pointerEvents;
   }
 
+  /* On the greeting — the first place anyone meets the circle — a touch does
+     nothing until the finger has stayed on it for HOLD_DELAY_MS. Let go sooner
+     and nothing happens at all, and the greeting carries on as if untouched:
+     that is the lesson, that this is a button you hold rather than tap. The
+     circle still shows it is pressed, so the wait reads as the button working
+     rather than ignoring you. Everywhere after the greeting it answers at once. */
+  let holdDelayTimer = null;
   function onHoldStart(e) {
     if (e) e.preventDefault();
     if (!user) return;
     if (current !== "hei" && current !== "task") return;
+    readConfig();
+    if (current === "hei" && HOLD_DELAY_MS > 0) {
+      cancelHoldDelay();
+      holdZone.classList.add("active");
+      holdDelayTimer = window.setTimeout(function () {
+        holdDelayTimer = null;
+        revealTask();
+      }, HOLD_DELAY_MS);
+      return;
+    }
+    revealTask();
+  }
+
+  // A press let go before its delay ran out, or overtaken by something else.
+  function cancelHoldDelay() {
+    if (!holdDelayTimer) return;
+    window.clearTimeout(holdDelayTimer);
+    holdDelayTimer = null;
+    holdZone.classList.remove("active");
+  }
+
+  function revealTask() {
     clearAllTimers();
     readConfig();
     holding = true;
@@ -1951,6 +1986,7 @@ Passer for barn fra 7-10 år</div>
   }
 
   function onHoldEnd() {
+    cancelHoldDelay();
     if (!holding) return;
     holding = false;
     holdZone.classList.remove("active");
@@ -2246,6 +2282,7 @@ Passer for barn fra 7-10 år</div>
     });
     idleTimer = settleTimer = fadeOutTimer = resultTimer = suspenseTimer = null;
     cancelClutterDelay();
+    cancelHoldDelay();
     idleEndsAt = settleEndsAt = fadeOutEndsAt = null;
     clearLogout();
   }
