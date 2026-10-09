@@ -1100,30 +1100,21 @@ Passer for barn fra 7-10 år</div>
     "pebble-lilac":         [700.055, 552.555, 288.595, 292.443]
   };
 
-  /* Greeting screen: the same swarm, but it frames the greeting instead of
-     burying it. This is where the mechanic introduces itself — the shapes come
-     charging in and the circle starts pulsing while "Hei, <navn>!" is still
-     perfectly readable, so the pile is understood as something you clear with
-     the circle before it ever costs the user anything.
+  /* Greeting screen: only the four shapes the greeting already rests with —
+     the splat, the curl and the wave along the top and bottom edges, and the
+     corner piece — where the Figma frame puts them (NaM – Design, node
+     23895:12921). This used to be a twelve-shape swarm around the greeting
+     text; the app as built has cut it right down, and the prototypes follow.
 
-     So a third rectangle stays clear here, on top of the circle and the lockup:
-       the greeting text   x 80-810, y 330-640
-     That is #greet-title (107,350, 80 tall) plus #greet-sub (107,475, up to 144
-     tall on the longer returning-user line). The shapes fill the top band, the
-     right-hand side and the bottom band, and leave that window alone. */
+     It is still a clutter layout rather than none, so the greeting keeps the
+     mechanic: the circle starts pulsing as the pile "lands", and holding it
+     sends these four away on the fast clutter-out curve. Since the pile is the
+     resting layout, nothing visibly arrives. */
   const CLUTTER_HEI = {
-    "cloud-lightblue":      [569, -196, 513.548, 415.998],
-    "starbig-pink":         [682, 509, 438.664, 428.403],
-    "pebble-lightblue":     [729, 560, 545.123, 533.805],
-    "splat-lilac":          [517, 730, 370.328, 385.637],
+    "splat-lilac":          [467, 716, 370.328, 385.637],
     "curl-green":           [838, -161, 435.941, 361.931],
     "wave-blue":            [694, 661, 438.446, 374.35],
-    "bottomleft":           [-140, 1002.875, 334.184, 348.154],
-    "squiggle-darkgreen":   [-570, 436, 806.782, 688.779],
-    "star-yellow-a":        [-410, -384, 242.605, 236.54],
-    "cloud-lightgreen":     [-107, -228, 564.363, 456.621],
-    "splat-pink":           [76, 728, 298.856, 310.4],
-    "star-yellow-b":        [-107, 68, 242.605, 236.54]
+    "bottomleft":           [-140, 1002.875, 334.184, 348.154]
   };
 
   /* Keyed by screen id — a screen that is not in here never clutters. */
