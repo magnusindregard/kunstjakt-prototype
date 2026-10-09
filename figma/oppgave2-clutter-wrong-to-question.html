@@ -928,6 +928,7 @@ Passer for barn fra 7-10 år</div>
   <label>Oppgaven toner ut (ms)<input type="number" id="cfg-fadeout" value="6000" min="1" step="100"></label>
   <label>Spørsmålet toner inn, velkomstskjerm (ms)<input type="number" id="cfg-greet-fade-in" value="700" min="0" step="50"></label>
   <label>Spørsmålet toner ut ved tidlig slipp (ms)<input type="number" id="cfg-greet-fade-back" value="200" min="0" step="50"></label>
+  <label>Slipp teller som fullført etter, andel av inntoningen (%)<input type="number" id="cfg-greet-commit" value="90" min="0" max="100" step="5"></label>
   <label>Spenningspause (ms)<input type="number" id="cfg-suspense" value="2500" min="0" step="100"></label>
   <label>Utlogging ved inaktivitet - loginskjermer (s)<input type="number" id="cfg-logout-login" value="15" min="5" step="5"></label>
   <label>Utlogging ved inaktivitet - greeting (s)<input type="number" id="cfg-logout-greeting" value="15" min="5" step="5"></label>
@@ -1213,9 +1214,11 @@ Passer for barn fra 7-10 år</div>
   let FADE_OUT_MS = 6000;
   /* How long the question takes to fade in when the circle is first held on
      the greeting, and how fast it leaves again if the finger lets go before
-     then. See onHoldStart(). */
+     then. A finger that lets go once GREET_COMMIT_PCT of the fade has run
+     counts as having stayed. See onHoldStart(). */
   let GREET_FADE_IN_MS = 700;
   let GREET_FADE_BACK_MS = 200;
+  let GREET_COMMIT_PCT = 90;
   let SUSPENSE_MS = 2500;
   let RESULT_DISPLAY_MS = 12000;
   let LOGOUT_LOGIN_MS = 15000;
@@ -1270,6 +1273,7 @@ Passer for barn fra 7-10 år</div>
   const cfgFadeout = document.getElementById("cfg-fadeout");
   const cfgGreetFadeIn = document.getElementById("cfg-greet-fade-in");
   const cfgGreetFadeBack = document.getElementById("cfg-greet-fade-back");
+  const cfgGreetCommit = document.getElementById("cfg-greet-commit");
   const cfgSuspense = document.getElementById("cfg-suspense");
   const cfgResult = document.getElementById("cfg-result");
   const cfgLogoutLogin = document.getElementById("cfg-logout-login");
@@ -1334,6 +1338,7 @@ Passer for barn fra 7-10 år</div>
     FADE_OUT_MS = Math.max(1, Number(cfgFadeout.value) || 1);
     GREET_FADE_IN_MS = Math.max(0, Number(cfgGreetFadeIn.value) || 0);
     GREET_FADE_BACK_MS = Math.max(0, Number(cfgGreetFadeBack.value) || 0);
+    GREET_COMMIT_PCT = Math.min(100, Math.max(0, Number(cfgGreetCommit.value) || 0));
     SUSPENSE_MS = Math.max(0, Number(cfgSuspense.value) || 0);
     RESULT_DISPLAY_MS = Math.max(1, Number(cfgResult.value) || 1) * 1000;
     LOGOUT_LOGIN_MS = Math.max(5, Number(cfgLogoutLogin.value) || 5) * 1000;
@@ -1359,7 +1364,7 @@ Passer for barn fra 7-10 år</div>
     REST_Y_MS = Math.max(100, Number(cfgRestYMs.value) || 100);
     applyRestingAnimation();
   }
-  [cfgFadeIn, cfgFadeout, cfgGreetFadeIn, cfgGreetFadeBack, cfgSuspense, cfgResult, cfgLogoutLogin, cfgLogoutGreeting, cfgLogoutAnswer,
+  [cfgFadeIn, cfgFadeout, cfgGreetFadeIn, cfgGreetFadeBack, cfgGreetCommit, cfgSuspense, cfgResult, cfgLogoutLogin, cfgLogoutGreeting, cfgLogoutAnswer,
    cfgClutterIn, cfgClutterOut, cfgClutterStagger, cfgClutterDelay, cfgAttractMs,
    cfgRestScale, cfgRestScaleMs, cfgRestX, cfgRestXMs, cfgRestY, cfgRestYMs]
     .forEach(function (i) { i.addEventListener("change", readConfig); });
@@ -1939,13 +1944,15 @@ Passer for barn fra 7-10 år</div>
   /* On the greeting — the first place anyone meets the circle — the pile
      leaves the moment the finger lands, but the question takes its time: it
      fades in over GREET_FADE_IN_MS, easing in, so it only really arrives for a
-     finger that stays. Let go before it has and the question fades straight
-     back out, the pile closes in again and the greeting is back as it was: the
-     user has not been asked. Let go after, and it was a hold like any other —
-     the question stays under the pile until the countdown fades it.
+     finger that stays. Let go early and the question fades straight back out,
+     the pile closes in again and the greeting is back as it was: the user has
+     not been asked. Let go later, and it was a hold like any other — the fade
+     runs to the end and the question stays under the pile until the countdown
+     fades it. "Later" is not the very end of the fade: GREET_COMMIT_PCT of it is
+     enough, so a finger lifted a moment too soon is not sent back for it.
      Everywhere after the greeting the task fades in at FADE_IN_MS, as before. */
   const GREET_FADE_EASE = "ease-in";
-  let greetRevealEndsAt = null;   // when a reveal from the greeting is fully in
+  let greetRevealCommitsAt = null;   // when letting go stops undoing a greeting reveal
   function onHoldStart(e) {
     if (e) e.preventDefault();
     if (!user) return;
@@ -1954,10 +1961,10 @@ Passer for barn fra 7-10 år</div>
     const fromGreeting = current === "hei";
     revealTask(fromGreeting ? GREET_FADE_IN_MS : FADE_IN_MS, fromGreeting ? GREET_FADE_EASE : "");
     // Set after revealTask(), whose clearAllTimers() would wipe it.
-    if (fromGreeting) greetRevealEndsAt = Date.now() + GREET_FADE_IN_MS;
+    if (fromGreeting) greetRevealCommitsAt = Date.now() + GREET_FADE_IN_MS * GREET_COMMIT_PCT / 100;
   }
 
-  // Let go before the question had faded all the way in.
+  // Let go before the question had faded far enough in to count.
   function backToGreeting() {
     if (!isAnswerMode) asked.delete(user.code);   // they never got to read it
     enterGreeting(GREET_FADE_BACK_MS);
@@ -1993,7 +2000,7 @@ Passer for barn fra 7-10 år</div>
     if (!holding) return;
     holding = false;
     holdZone.classList.remove("active");
-    if (greetRevealEndsAt && Date.now() < greetRevealEndsAt) { backToGreeting(); return; }
+    if (greetRevealCommitsAt && Date.now() < greetRevealCommitsAt) { backToGreeting(); return; }
     clearAllTimers();
     readConfig();
     startTaskCountdown(false);
@@ -2282,7 +2289,7 @@ Passer for barn fra 7-10 år</div>
     });
     idleTimer = settleTimer = fadeOutTimer = resultTimer = suspenseTimer = null;
     cancelClutterDelay();
-    greetRevealEndsAt = null;
+    greetRevealCommitsAt = null;
     idleEndsAt = settleEndsAt = fadeOutEndsAt = null;
     clearLogout();
   }
