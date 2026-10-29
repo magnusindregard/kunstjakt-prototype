@@ -1,0 +1,268 @@
+/* Shared styles for the vestibule-screen prototypes. Everything is laid out in
+   Figma's 1926×985 pixels; vestibyle.js scales the stage to the window.
+   Variant blocks at the bottom place the columns, image and clock for each of
+   the four directions in "Vestibyle evens". */
+
+@font-face {
+  font-family: "Museet Sans";
+  src: url(fonts/MuseetSans-400.woff2) format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Museet Sans";
+  src: url(fonts/MuseetSans-500.woff2) format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  --white: #fff;
+  --gray: #646464;
+  --gray-inverted: #afafaf;
+  --slide-duration: 13s;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: var(--white);
+  font-family: "Museet Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  /* Figma draws text with greyscale antialiasing; without this macOS browsers
+     render the light-on-black text noticeably heavier. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+p, ul { margin: 0; padding: 0; }
+ul { list-style: none; }
+
+.stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1926px;
+  height: 985px;
+  overflow: hidden;
+  background: #000;
+  transform-origin: center;
+  opacity: 0;
+  transition: opacity 0.5s ease-in;
+}
+.is-ready .stage { opacity: 1; }
+
+/* ---------- Column headers ---------- */
+
+.col-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 24px;
+}
+.col-header__no { font-size: 26px; font-weight: 500; line-height: 1.1; }
+.col-header__en { font-size: 22px; line-height: 1.2; }
+
+/* ---------- Exhibitions column ---------- */
+
+.exhibitions {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.exhibitions__top { display: flex; flex-direction: column; }
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.detail.is-in { opacity: 1; }
+
+.detail__floor {
+  display: flex;
+  gap: 12px;
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: -0.32px;
+  white-space: nowrap;
+  margin-bottom: -12px; /* floor → titles is 24px inside the 36px detail gap */
+}
+.detail__muted { color: var(--gray-inverted); }
+
+.detail__titles { display: flex; flex-direction: column; gap: 16px; }
+.detail__title-no { font-size: 46px; font-weight: 500; line-height: 1.1; text-wrap: balance; }
+.detail__title-en { font-size: 32px; line-height: 1.2; text-wrap: balance; }
+
+.detail__category { display: flex; flex-direction: column; gap: 4px; font-size: 16px; line-height: 1.2; }
+
+.ex-list { display: flex; flex-direction: column; gap: 6px; width: 300px; }
+.ex-list__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  height: 42px;
+  padding: 4px 0 6px 16px;
+  border-left: 1px solid var(--gray);
+  color: var(--gray);
+  line-height: 1;
+  transition: color 0.3s;
+}
+.ex-list__no { font-size: 16px; font-weight: 500; }
+.ex-list__en { font-size: 12px; }
+.ex-list__item.is-current { color: var(--white); }
+
+/* The white indicator fills the gray border over the slide's lifetime, like
+   prod. Figma's indicator is 30px inside the 42px border, which left gray
+   showing above and below it, so it now covers the whole border. */
+.ex-list__item::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--white);
+  transform: scaleY(0);
+  transform-origin: top;
+}
+.ex-list__item.is-current::after {
+  animation: fill var(--slide-duration) linear forwards;
+}
+@keyframes fill { to { transform: scaleY(1); } }
+
+/* ---------- Image ---------- */
+
+.image { position: absolute; overflow: hidden; background: #111; }
+.image__slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.image__slide.is-active { opacity: 1; }
+
+/* ---------- Events column ---------- */
+
+.events { position: absolute; display: flex; flex-direction: column; }
+.events__list { display: flex; flex-direction: column; gap: 8px; }
+
+.event {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0;
+  transition: color 0.6s;
+}
+.event__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 24px;
+  font-size: 16px;
+  line-height: 24px;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+.event__title { font-size: 22px; font-weight: 500; line-height: 1.1; margin-top: -8px; }
+.event__info { font-size: 16px; line-height: 22px; color: var(--gray-inverted); }
+
+/* Once an event's last session is over the whole card greys out. */
+.event.is-past,
+.event.is-past .event__info { color: var(--gray); }
+
+/* ---------- Clock and rules ---------- */
+
+.clock {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  font-size: 22px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.clock__icon { width: 33px; height: 33px; display: block; }
+
+.rule { position: absolute; background: var(--gray); display: none; }
+
+/* =============================================================
+   Direction 1 — framed image, header rules, clock above image
+   ============================================================= */
+
+[data-variant="d1"] .col-header { gap: 2px; padding-bottom: 0; }
+[data-variant="d1"] .col-header__no { font-size: 30px; }
+[data-variant="d1"] .col-header__en { font-size: 26px; letter-spacing: -0.52px; }
+
+[data-variant="d1"] .exhibitions { left: 24px; top: 28px; width: 385px; height: 909px; }
+[data-variant="d1"] .exhibitions__top { gap: 109px; }
+[data-variant="d1"] .detail { max-width: 310px; }
+
+[data-variant="d1"] .image { left: 353px; top: 203px; width: 1077px; height: 731px; }
+
+[data-variant="d1"] .rule--left { display: block; left: 5px; top: 123px; width: 1425px; height: 1px; }
+[data-variant="d1"] .rule--right { display: block; left: 1589px; top: 123px; width: 337px; height: 1px; }
+
+[data-variant="d1"] .events { left: 1589px; top: 28px; width: 305px; gap: 69px; }
+
+[data-variant="d1"] .clock { right: 504px; top: 30px; }
+
+/* =============================================================
+   Direction 1, tighter — larger image, one vertical rule
+   ============================================================= */
+
+[data-variant="d1-tight"] .exhibitions { left: 24px; top: 33px; width: 340px; height: 900px; }
+[data-variant="d1-tight"] .exhibitions__top { gap: 64px; }
+[data-variant="d1-tight"] .detail { gap: 51px; }
+[data-variant="d1-tight"] .detail__floor { margin-bottom: -24px; } /* 27px to the titles */
+[data-variant="d1-tight"] .detail__titles { gap: 8px; }
+[data-variant="d1-tight"] .detail__title-en { font-size: 30px; letter-spacing: -0.6px; }
+
+[data-variant="d1-tight"] .image { left: 364px; top: 180px; width: 1156px; height: 754px; }
+
+[data-variant="d1-tight"] .rule--vertical { display: block; left: 1560px; top: 0; width: 1px; height: 985px; }
+
+[data-variant="d1-tight"] .events { left: 1601px; top: 33px; width: 279px; gap: 47px; }
+[data-variant="d1-tight"] .event__meta { margin-bottom: 8px; }
+
+[data-variant="d1-tight"] .clock { right: 419px; top: 33px; }
+
+/* =============================================================
+   Direction 2 — full-height image between two 436px columns
+   ============================================================= */
+
+[data-variant="d2"] .exhibitions,
+[data-variant="d2-tight"] .exhibitions { left: 0; top: 0; height: 985px; padding: 36px; }
+[data-variant="d2"] .exhibitions__top,
+[data-variant="d2-tight"] .exhibitions__top { gap: 60px; }
+[data-variant="d2"] .ex-list,
+[data-variant="d2-tight"] .ex-list { width: 100%; }
+
+[data-variant="d2"] .events,
+[data-variant="d2-tight"] .events { top: 0; height: 985px; padding: 36px; gap: 36px; }
+
+/* The clock sits at the top right of the events column. The Figma frame for
+   plain Direction 2 has no clock, so it borrows the spot from the tighter one. */
+[data-variant="d2"] .clock,
+[data-variant="d2-tight"] .clock { right: 36px; top: 36px; }
+
+[data-variant="d2"] .exhibitions { width: 436px; }
+[data-variant="d2"] .image { left: 436px; top: 0; width: 1060px; height: 985px; }
+[data-variant="d2"] .events { left: 1496px; width: 430px; }
+
+/* =============================================================
+   Direction 2, tighter columns — 400px columns, wider image
+   ============================================================= */
+
+[data-variant="d2-tight"] .exhibitions { width: 400px; }
+[data-variant="d2-tight"] .image { left: 400px; top: 0; width: 1126px; height: 985px; }
+[data-variant="d2-tight"] .events { left: 1526px; width: 400px; }
