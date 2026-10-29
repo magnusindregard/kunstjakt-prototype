@@ -37,8 +37,8 @@
     { time: '12.00–12.10 og 12.30–12.40', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
     { time: '12.00–13.30 og 14.30–16.00', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
     { time: '14.00–14.45', type: 'Omvisning', title: 'Kunstaktivisme', info: 'Påmelding i infoskranken' },
-    { time: '14.00–14.45', type: 'Omvisning', title: 'Enkle hytter, rike liv: lærdommer fra Zappfe og Næss', info: 'Påmelding i infoskranken' },
-    { time: '14.00–14.45', type: 'Omvisning', title: 'Malerin̶n̶e̶', info: 'Påmelding i infoskranken' },
+    { time: '15.00–15.45', type: 'Omvisning', title: 'Enkle hytter, rike liv: lærdommer fra Zappfe og Næss', info: 'Påmelding i infoskranken' },
+    { time: '16.00–16.45', type: 'Omvisning', title: 'Malerin̶n̶e̶', info: 'Påmelding i infoskranken' },
   ];
 
   const params = new URLSearchParams(location.search);
