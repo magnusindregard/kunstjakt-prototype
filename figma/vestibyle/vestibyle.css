@@ -1,7 +1,7 @@
 /* Shared styles for the vestibule-screen prototypes. Everything is laid out in
    Figma's 1926×985 pixels; vestibyle.js scales the stage to the window.
    Variant blocks at the bottom place the columns, image and clock for each of
-   the four directions in "Vestibyle evens". */
+   the directions in "Vestibyle evens". */
 
 /* Museet Sans Text as a variable font, the file prod uses for its exhibition
    titles (MuseetSansVF). It is the 2024 redraw; the 2018 "Museet Sans", with
@@ -158,7 +158,25 @@ ul { list-style: none; }
 /* ---------- Events column ---------- */
 
 .events { position: absolute; display: flex; flex-direction: column; }
-.events__list { display: flex; flex-direction: column; gap: 8px; }
+.events__list { display: flex; flex-direction: column; gap: 8px; opacity: 0; transition: opacity 0.4s ease; }
+.events__list.is-in { opacity: 1; }
+.event[hidden] { display: none; }
+
+/* One 42px segment per page of events. The current page's segment fills
+   white from the left over the page's lifetime, like the exhibition list. */
+/* Placed per variant relative to the events column. */
+.pager { position: absolute; display: flex; gap: 16px; }
+.pager__item { position: relative; width: 42px; height: 1px; background: var(--gray); }
+.pager__item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--white);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.pager__item.is-current::after { animation: fill-x var(--page-duration) linear forwards; }
+@keyframes fill-x { to { transform: scaleX(1); } }
 
 .event {
   display: flex;
@@ -238,6 +256,10 @@ ul { list-style: none; }
 
 [data-variant="d1-tight"] .clock { right: 419px; top: 33px; }
 
+/* Not in Figma: the pager lines up with the bottom of the image and the
+   exhibition list. */
+[data-variant="d1-tight"] .pager { left: 0; top: 900px; }
+
 /* =============================================================
    Direction 2 — full-height image between two 436px columns
    ============================================================= */
@@ -268,3 +290,25 @@ ul { list-style: none; }
 [data-variant="d2-tight"] .exhibitions { width: 400px; }
 [data-variant="d2-tight"] .image { left: 400px; top: 0; width: 1126px; height: 985px; }
 [data-variant="d2-tight"] .events { left: 1526px; width: 400px; }
+
+/* =============================================================
+   Version 5 — inset image between two 430px columns, paged events
+   ============================================================= */
+
+[data-variant="v5"] .col-header { gap: 2px; padding-bottom: 0; }
+[data-variant="v5"] .col-header__no { font-size: 30px; }
+[data-variant="v5"] .col-header__en { font-size: 26px; letter-spacing: -0.52px; }
+
+[data-variant="v5"] .exhibitions { left: 0; top: 0; width: 430px; height: 985px; padding: 36px; }
+[data-variant="v5"] .exhibitions__top { gap: 93px; }
+
+[data-variant="v5"] .image { left: 466px; top: 36px; width: 994px; height: 913px; }
+
+[data-variant="v5"] .rule--vertical { display: block; left: 1496px; top: 0; width: 1px; height: 985px; }
+
+/* The right column's 36px padding starts after its 1px border. */
+[data-variant="v5"] .events { left: 1497px; top: 0; width: 429px; height: 985px; padding: 36px; gap: 69px; }
+[data-variant="v5"] .event__title { line-height: 1.3; }
+[data-variant="v5"] .pager { left: 168px; top: 952px; } /* centred in the column */
+
+[data-variant="v5"] .clock { right: 36px; top: 38px; }
