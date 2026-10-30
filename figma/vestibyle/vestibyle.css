@@ -200,7 +200,7 @@ ul { list-style: none; }
 .event__title { font-size: 22px; font-weight: 500; line-height: 1.1; margin-top: -8px; }
 .event__info { font-size: 16px; line-height: 22px; color: var(--gray-inverted); }
 
-/* Once an event's last session is over the whole card greys out. */
+/* Five minutes after an event's last session starts the whole card greys out. */
 .event.is-past,
 .event.is-past .event__info { color: var(--gray); }
 

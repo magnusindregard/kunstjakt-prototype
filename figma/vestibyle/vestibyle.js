@@ -34,8 +34,8 @@
   ];
 
   // Dummy programme from the Figma sketches, plus three evening events to fill
-  // a second page (the museum closes at 20.00). An event counts as over once
-  // its last session has ended.
+  // a second page (the museum closes at 20.00). An event counts as over five
+  // minutes after its last session has started, when it's too late to join.
   const EVENTS = [
     { time: '12.00–12.10 og 12.30–12.40', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
     { time: '12.00–13.30 og 14.30–16.00', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
@@ -85,12 +85,17 @@
     return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   }
 
-  function lastEnd(time) {
-    const stamps = time.match(/\d{1,2}[.:]\d{2}/g) || [];
-    const last = stamps[stamps.length - 1];
+  const GREY_AFTER_START = 5;
+
+  // Minute of the day the event greys out. A session is "12.00–12.10"; an
+  // event with several sessions greys out after the start of the last one.
+  // A bare time with no range counts as a start.
+  function greyAt(time) {
+    const starts = time.match(/\d{1,2}[.:]\d{2}(?=\s*[–-])/g) || time.match(/\d{1,2}[.:]\d{2}/g) || [];
+    const last = starts[starts.length - 1];
     if (!last) return Infinity;
     const [h, m] = last.split(/[.:]/).map(Number);
-    return h * 60 + m;
+    return h * 60 + m + GREY_AFTER_START;
   }
 
   const variant = document.body.dataset.variant;
@@ -120,7 +125,7 @@
     <aside class="events">
       ${header('Arrangementer', 'Events', 'col-header--events')}
       <ul class="events__list">${shownEvents.map((ev, i) => `
-        <li class="event" data-page="${Math.floor(i / PAGE_SIZE)}" data-end="${lastEnd(ev.time)}">
+        <li class="event" data-page="${Math.floor(i / PAGE_SIZE)}" data-grey-at="${greyAt(ev.time)}">
           <div class="event__meta"><span>${esc(ev.time)}</span><span>${esc(ev.type)}</span></div>
           <p class="event__title">${esc(ev.title)}</p>
           <p class="event__info">${esc(ev.info)}</p>
@@ -218,7 +223,7 @@
   function tick() {
     stage.querySelector('.clock__time').textContent = clockText();
     const now = minutesNow();
-    stage.querySelectorAll('.event').forEach((el) => el.classList.toggle('is-past', Number(el.dataset.end) <= now));
+    stage.querySelectorAll('.event').forEach((el) => el.classList.toggle('is-past', Number(el.dataset.greyAt) <= now));
   }
   tick();
   setInterval(tick, 1000);
