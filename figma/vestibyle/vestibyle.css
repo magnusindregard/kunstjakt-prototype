@@ -3,16 +3,13 @@
    Variant blocks at the bottom place the columns, image and clock for each of
    the four directions in "Vestibyle evens". */
 
+/* Museet Sans Text as a variable font, the file prod uses for its exhibition
+   titles (MuseetSansVF). Its letterforms match prod's static cut, so one file
+   serves every weight. */
 @font-face {
   font-family: "Museet Sans";
-  src: url(fonts/MuseetSans-400.woff2) format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Museet Sans";
-  src: url(fonts/MuseetSans-500.woff2) format("woff2");
-  font-weight: 500;
+  src: url(fonts/MuseetSansVF.woff2) format("woff2");
+  font-weight: 300 700;
   font-display: swap;
 }
 
@@ -98,7 +95,10 @@ ul { list-style: none; }
 .detail__muted { color: var(--gray-inverted); }
 
 .detail__titles { display: flex; flex-direction: column; gap: 16px; }
-.detail__title-no { font-size: 46px; font-weight: 500; line-height: 1.1; text-wrap: balance; }
+/* Figma has this in Medium, but prod renders it Regular (its font face is
+   declared at 400 only, so the 500 it asks for never applies) with slightly
+   tight tracking. The prototype follows prod. */
+.detail__title-no { font-size: 46px; font-weight: 400; letter-spacing: -0.96px; line-height: 1.1; text-wrap: balance; }
 .detail__title-en { font-size: 32px; line-height: 1.2; text-wrap: balance; }
 
 .detail__category { display: flex; flex-direction: column; gap: 4px; font-size: 16px; line-height: 1.2; }
