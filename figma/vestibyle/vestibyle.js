@@ -1,10 +1,12 @@
-// Shared runtime for the four vestibule-screen prototypes. Each page only sets
+// Shared runtime for the vestibule-screen prototypes. Each page only sets
 // data-variant on <body>; the markup, the exhibition loop and the clock live
 // here, and vestibyle.css places the pieces per variant.
 //
 // URL parameters, handy when testing:
 //   ?time=14:50  freeze the clock at a time of day, to see past events dim
 //   ?slide=8     seconds per exhibition (prod uses 13)
+//   ?events=8    seconds per page of events, on pages with data-paginate
+//                (defaults to the same 13 as the exhibitions)
 
 (function () {
   // Straight from https://www.nasjonalmuseet.no/api/vestibule/exhibitions.
@@ -31,18 +33,30 @@
     },
   ];
 
-  // Dummy programme from the Figma sketches. An event counts as over once its
-  // last session has ended.
+  // Dummy programme from the Figma sketches, plus three evening events to fill
+  // a second page (the museum closes at 20.00). An event counts as over once
+  // its last session has ended.
   const EVENTS = [
     { time: '12.00–12.10 og 12.30–12.40', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
     { time: '12.00–13.30 og 14.30–16.00', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
     { time: '14.00–14.45', type: 'Omvisning', title: 'Kunstaktivisme', info: 'Påmelding i infoskranken' },
     { time: '15.00–15.45', type: 'Omvisning', title: 'Enkle hytter, rike liv: lærdommer fra Zappfe og Næss', info: 'Påmelding i infoskranken' },
     { time: '16.00–16.45', type: 'Omvisning', title: 'Malerin̶n̶e̶', info: 'Påmelding i infoskranken' },
+    { time: '17.00–17.45', type: 'Omvisning', title: 'Søylerommet', info: 'Påmelding i infoskranken' },
+    { time: '18.00–18.45', type: 'Kunstnersamtale', title: 'Hvem fikk kalle seg maler?', info: 'Auditoriet. Gratis med billett' },
+    { time: '19.00–19.40', type: 'Konsert', title: 'Kveldskonsert i Lyshallen', info: 'Fri entré' },
   ];
+
+  // Pages marked data-paginate show every event, five to a page, and step
+  // through the pages; the others show only the first five.
+  const PAGE_SIZE = 5;
+  const PAGINATE = document.body.hasAttribute('data-paginate');
+  const shownEvents = PAGINATE ? EVENTS : EVENTS.slice(0, PAGE_SIZE);
+  const pageCount = Math.ceil(shownEvents.length / PAGE_SIZE);
 
   const params = new URLSearchParams(location.search);
   const SLIDE_SECONDS = Number(params.get('slide')) || 13;
+  const PAGE_SECONDS = Number(params.get('events')) || SLIDE_SECONDS;
   const FROZEN_TIME = /^\d{1,2}[:.]\d{2}$/.test(params.get('time') || '') ? params.get('time') : null;
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -105,13 +119,15 @@
     </section>
     <aside class="events">
       ${header('Arrangementer', 'Events', 'col-header--events')}
-      <ul class="events__list">${EVENTS.map((ev) => `
-        <li class="event" data-end="${lastEnd(ev.time)}">
+      <ul class="events__list">${shownEvents.map((ev, i) => `
+        <li class="event" data-page="${Math.floor(i / PAGE_SIZE)}" data-end="${lastEnd(ev.time)}">
           <div class="event__meta"><span>${esc(ev.time)}</span><span>${esc(ev.type)}</span></div>
           <p class="event__title">${esc(ev.title)}</p>
           <p class="event__info">${esc(ev.info)}</p>
         </li>`).join('')}
       </ul>
+      ${pageCount > 1 ? `<div class="pager">${Array.from({ length: pageCount }, (_, p) =>
+        `<span class="pager__item" data-page="${p}"></span>`).join('')}</div>` : ''}
     </aside>
     <div class="clock"><img class="clock__icon" src="assets/clock.svg" alt=""><span class="clock__time"></span></div>
   `;
@@ -167,6 +183,33 @@
   stage.style.setProperty('--slide-duration', SLIDE_SECONDS + 's');
   show(0);
   setInterval(() => show((current + 1) % EXHIBITIONS.length), SLIDE_SECONDS * 1000);
+
+  // The event pages fade like the exhibition details, and the pager reuses
+  // the exhibition list's fill, laid on its side.
+  const eventList = stage.querySelector('.events__list');
+  const eventItems = stage.querySelectorAll('.event');
+  const pagerItems = stage.querySelectorAll('.pager__item');
+  let currentPage = -1;
+  function showPage(p) {
+    const first = currentPage === -1;
+    currentPage = p;
+    pagerItems.forEach((el) => {
+      el.classList.remove('is-current');
+      if (Number(el.dataset.page) === p) {
+        void el.offsetWidth;
+        el.classList.add('is-current');
+      }
+    });
+    eventList.classList.remove('is-in');
+    setTimeout(() => {
+      eventItems.forEach((el) => { el.hidden = Number(el.dataset.page) !== p; });
+      eventList.classList.add('is-in');
+    }, first ? 0 : 400);
+  }
+
+  stage.style.setProperty('--page-duration', PAGE_SECONDS + 's');
+  showPage(0);
+  if (pageCount > 1) setInterval(() => showPage((currentPage + 1) % pageCount), PAGE_SECONDS * 1000);
 
   function tick() {
     stage.querySelector('.clock__time').textContent = clockText();
