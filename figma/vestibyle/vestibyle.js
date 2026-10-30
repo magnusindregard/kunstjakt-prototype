@@ -184,8 +184,8 @@
   show(0);
   setInterval(() => show((current + 1) % EXHIBITIONS.length), SLIDE_SECONDS * 1000);
 
-  // The event pages fade like the exhibition details, and the pager reuses
-  // the exhibition list's fill, laid on its side.
+  // The old event page fades out and the new one's events fade in one by one.
+  // The pager reuses the exhibition list's fill, laid on its side.
   const eventList = stage.querySelector('.events__list');
   const eventItems = stage.querySelectorAll('.event');
   const pagerItems = stage.querySelectorAll('.pager__item');
@@ -202,7 +202,11 @@
     });
     eventList.classList.remove('is-in');
     setTimeout(() => {
-      eventItems.forEach((el) => { el.hidden = Number(el.dataset.page) !== p; });
+      let n = 0;
+      eventItems.forEach((el) => {
+        el.hidden = Number(el.dataset.page) !== p;
+        if (!el.hidden) el.style.setProperty('--i', n++);
+      });
       eventList.classList.add('is-in');
     }, first ? 0 : 400);
   }

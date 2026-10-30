@@ -4,8 +4,3 @@
 # composited figma/assets/v2/melk-*.png instead; keep this file locally to
 # regenerate those crops, or drop this line to put the original in the repo.
 figma/assets/v2/melkeglass.jpeg
-
-# Museet Sans is Nasjonalmuseet's licensed typeface and this repo is public.
-# The vestibyle prototypes load it from here when present and fall back to
-# Helvetica otherwise (e.g. on GitHub Pages).
-figma/vestibyle/fonts/
