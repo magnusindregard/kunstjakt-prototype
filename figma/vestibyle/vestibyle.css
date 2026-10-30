@@ -4,10 +4,12 @@
    the four directions in "Vestibyle evens". */
 
 /* Museet Sans Text as a variable font, the file prod uses for its exhibition
-   titles (MuseetSansVF). Its letterforms match prod's static cut, so one file
-   serves every weight. */
+   titles (MuseetSansVF). It is the 2024 redraw; the 2018 "Museet Sans", with
+   a slanted M and a different g, is still installed on many designers'
+   machines. The family gets a name of its own so a locally installed copy of
+   the old cut can never stand in for it. */
 @font-face {
-  font-family: "Museet Sans";
+  font-family: "Vestibyle Museet Sans Text";
   src: url(fonts/MuseetSansVF.woff2) format("woff2");
   font-weight: 300 700;
   font-display: swap;
@@ -28,7 +30,7 @@ html, body {
   overflow: hidden;
   background: #000;
   color: var(--white);
-  font-family: "Museet Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Vestibyle Museet Sans Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 400;
   /* Figma draws text with greyscale antialiasing; without this macOS browsers
      render the light-on-black text noticeably heavier. */
