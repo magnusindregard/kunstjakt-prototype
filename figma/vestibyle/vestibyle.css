@@ -97,10 +97,9 @@ ul { list-style: none; }
 .detail__muted { color: var(--gray-inverted); }
 
 .detail__titles { display: flex; flex-direction: column; gap: 16px; }
-/* Figma has this in Medium, but prod renders it Regular (its font face is
-   declared at 400 only, so the 500 it asks for never applies) with slightly
-   tight tracking. The prototype follows prod. */
-.detail__title-no { font-size: 46px; font-weight: 400; letter-spacing: -0.96px; line-height: 1.1; text-wrap: balance; }
+/* Medium, as in Figma. Prod asks for 500 too but renders Regular, since its
+   font face is declared at 400 only; the prototype follows Figma. */
+.detail__title-no { font-size: 46px; font-weight: 500; letter-spacing: -0.96px; line-height: 1.1; text-wrap: balance; }
 .detail__title-en { font-size: 32px; line-height: 1.2; text-wrap: balance; }
 
 .detail__category { display: flex; flex-direction: column; gap: 4px; font-size: 16px; line-height: 1.2; }
@@ -159,7 +158,11 @@ ul { list-style: none; }
 
 .events { position: absolute; display: flex; flex-direction: column; }
 .events__list { display: flex; flex-direction: column; gap: 8px; opacity: 0; transition: opacity 0.4s ease; }
-.events__list.is-in { opacity: 1; }
+/* The outgoing page fades as a whole; the incoming one appears at once and
+   its events fade in one after another (--i is set per page in vestibyle.js). */
+.events__list.is-in { opacity: 1; transition: none; }
+.events__list.is-in .event { animation: event-in 0.3s ease calc(var(--i, 0) * 80ms) both; }
+@keyframes event-in { from { opacity: 0; } }
 .event[hidden] { display: none; }
 
 /* One 42px segment per page of events. The current page's segment fills
@@ -301,8 +304,6 @@ ul { list-style: none; }
 
 [data-variant="v5"] .exhibitions { left: 0; top: 0; width: 430px; height: 985px; padding: 36px; }
 [data-variant="v5"] .exhibitions__top { gap: 93px; }
-/* Unlike the other variants, which follow prod's Regular, v5 uses Figma's Medium. */
-[data-variant="v5"] .detail__title-no { font-weight: 500; }
 
 [data-variant="v5"] .image { left: 466px; top: 36px; width: 994px; height: 913px; }
 
