@@ -301,6 +301,8 @@ ul { list-style: none; }
 
 [data-variant="v5"] .exhibitions { left: 0; top: 0; width: 430px; height: 985px; padding: 36px; }
 [data-variant="v5"] .exhibitions__top { gap: 93px; }
+/* Unlike the other variants, which follow prod's Regular, v5 uses Figma's Medium. */
+[data-variant="v5"] .detail__title-no { font-weight: 500; }
 
 [data-variant="v5"] .image { left: 466px; top: 36px; width: 994px; height: 913px; }
 
