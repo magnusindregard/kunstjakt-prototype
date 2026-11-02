@@ -169,6 +169,7 @@ ul { list-style: none; }
    white from the left over the page's lifetime, like the exhibition list. */
 /* Placed per variant relative to the events column. */
 .pager { position: absolute; display: flex; gap: 16px; }
+.pager[hidden] { display: none; }
 .pager__item { position: relative; width: 42px; height: 1px; background: var(--gray); }
 .pager__item::after {
   content: "";
