@@ -52,9 +52,9 @@
   ];
 
   // Pages marked data-paginate show the events five to a page and step
-  // through the pages; the others show only the first five. Past events never
-  // add a page: the upcoming ones set the page count, and the most recent past
-  // events fill whatever room is left on it.
+  // through the pages; the others show only the first five. Past events only
+  // show when all the upcoming ones fit on one page, and then the most recent
+  // past events fill whatever room is left on it.
   const PAGE_SIZE = 5;
   const PAGINATE = document.body.hasAttribute('data-paginate');
   const shownEvents = PAGINATE ? EVENTS : EVENTS.slice(0, PAGE_SIZE);
@@ -205,13 +205,14 @@
   let layoutKey = null;
 
   // Hands out pages for the events at this minute. Events are in start order,
-  // so the past ones come first and the ones dropped are the oldest.
+  // so the past ones come first and the ones dropped are the oldest. Past
+  // events only show when every upcoming event fits on a single page.
   function layout(now) {
     layoutKey = pastKey(now);
     const past = layoutKey.split('').filter((c) => c === '1').length;
     const upcoming = eventItems.length - past;
-    pageCount = Math.max(1, Math.ceil(upcoming / PAGE_SIZE));
-    const dropped = Math.max(0, eventItems.length - pageCount * PAGE_SIZE);
+    const dropped = upcoming > PAGE_SIZE ? past : Math.max(0, eventItems.length - PAGE_SIZE);
+    pageCount = Math.max(1, Math.ceil((eventItems.length - dropped) / PAGE_SIZE));
     eventItems.forEach((el, i) => {
       el.dataset.page = i < dropped ? '' : Math.floor((i - dropped) / PAGE_SIZE);
     });
