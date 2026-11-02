@@ -15,6 +15,15 @@
   font-display: swap;
 }
 
+/* The clock is set in the display cut, Museet Sans, as in Figma. Only its
+   digits, colon and space are shipped. */
+@font-face {
+  font-family: "Vestibyle Museet Sans Clock";
+  src: url(fonts/MuseetSans-Regular-clock.woff2) format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   --white: #fff;
   --gray: #646464;
@@ -87,7 +96,8 @@ ul { list-style: none; }
 
 .detail__floor {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
   font-size: 16px;
   line-height: 1.2;
   letter-spacing: -0.32px;
@@ -211,6 +221,7 @@ ul { list-style: none; }
   position: absolute;
   display: flex;
   align-items: center;
+  font-family: "Vestibyle Museet Sans Clock", "Vestibyle Museet Sans Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-size: 22px;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
