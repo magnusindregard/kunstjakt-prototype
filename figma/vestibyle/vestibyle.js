@@ -34,12 +34,16 @@
   ];
 
   // Dummy programme from the Figma sketches, plus three evening events to fill
-  // a second page (the museum closes at 20.00). An event counts as over five
-  // minutes after its last session has started, when it's too late to join.
+  // a second page (the museum closes at 20.00). The event data has no way to
+  // group sessions, so an event that runs twice is listed twice, in start
+  // order. An event counts as over five minutes after it has started, when
+  // it's too late to join.
   const EVENTS = [
-    { time: '12.00–12.10 og 12.30–12.40', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
-    { time: '12.00–13.30 og 14.30–16.00', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
+    { time: '12.00–12.10', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
+    { time: '12.00–13.30', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
+    { time: '12.30–12.40', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
     { time: '14.00–14.45', type: 'Omvisning', title: 'Kunstaktivisme', info: 'Påmelding i infoskranken' },
+    { time: '14.30–16.00', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
     { time: '15.00–15.45', type: 'Omvisning', title: 'Enkle hytter, rike liv: lærdommer fra Zappfe og Næss', info: 'Påmelding i infoskranken' },
     { time: '16.00–16.45', type: 'Omvisning', title: 'Malerin̶n̶e̶', info: 'Påmelding i infoskranken' },
     { time: '17.00–17.45', type: 'Omvisning', title: 'Søylerommet', info: 'Påmelding i infoskranken' },
@@ -47,12 +51,13 @@
     { time: '19.00–19.40', type: 'Konsert', title: 'Kveldskonsert i Lyshallen', info: 'Fri entré' },
   ];
 
-  // Pages marked data-paginate show every event, five to a page, and step
-  // through the pages; the others show only the first five.
+  // Pages marked data-paginate show the events five to a page and step
+  // through the pages; the others show only the first five. Past events never
+  // add a page: the upcoming ones set the page count, and the most recent past
+  // events fill whatever room is left on it.
   const PAGE_SIZE = 5;
   const PAGINATE = document.body.hasAttribute('data-paginate');
   const shownEvents = PAGINATE ? EVENTS : EVENTS.slice(0, PAGE_SIZE);
-  const pageCount = Math.ceil(shownEvents.length / PAGE_SIZE);
 
   const params = new URLSearchParams(location.search);
   const SLIDE_SECONDS = Number(params.get('slide')) || 13;
@@ -87,14 +92,12 @@
 
   const GREY_AFTER_START = 5;
 
-  // Minute of the day the event greys out. A session is "12.00–12.10"; an
-  // event with several sessions greys out after the start of the last one.
+  // Minute of the day the event greys out, from the start of "12.00–12.10".
   // A bare time with no range counts as a start.
   function greyAt(time) {
-    const starts = time.match(/\d{1,2}[.:]\d{2}(?=\s*[–-])/g) || time.match(/\d{1,2}[.:]\d{2}/g) || [];
-    const last = starts[starts.length - 1];
-    if (!last) return Infinity;
-    const [h, m] = last.split(/[.:]/).map(Number);
+    const start = time.match(/\d{1,2}[.:]\d{2}/);
+    if (!start) return Infinity;
+    const [h, m] = start[0].split(/[.:]/).map(Number);
     return h * 60 + m + GREY_AFTER_START;
   }
 
@@ -125,14 +128,13 @@
     <aside class="events">
       ${header('Arrangementer', 'Events', 'col-header--events')}
       <ul class="events__list">${shownEvents.map((ev, i) => `
-        <li class="event" data-page="${Math.floor(i / PAGE_SIZE)}" data-grey-at="${greyAt(ev.time)}">
+        <li class="event" data-grey-at="${greyAt(ev.time)}" hidden>
           <div class="event__meta"><span>${esc(ev.time)}</span><span>${esc(ev.type)}</span></div>
           <p class="event__title">${esc(ev.title)}</p>
           <p class="event__info">${esc(ev.info)}</p>
         </li>`).join('')}
       </ul>
-      ${pageCount > 1 ? `<div class="pager">${Array.from({ length: pageCount }, (_, p) =>
-        `<span class="pager__item" data-page="${p}"></span>`).join('')}</div>` : ''}
+      <div class="pager" hidden></div>
     </aside>
     <div class="clock"><img class="clock__icon" src="assets/clock.svg" alt=""><span class="clock__time"></span></div>
   `;
@@ -193,10 +195,37 @@
   // The pager reuses the exhibition list's fill, laid on its side.
   const eventList = stage.querySelector('.events__list');
   const eventItems = stage.querySelectorAll('.event');
-  const pagerItems = stage.querySelectorAll('.pager__item');
+  const pager = stage.querySelector('.pager');
+  let pagerItems = [];
+  let pageCount = 1;
   let currentPage = -1;
+
+  // Which events are past right now, as a key that changes when one greys out.
+  const pastKey = (now) => Array.from(eventItems, (el) => (Number(el.dataset.greyAt) <= now ? 1 : 0)).join('');
+  let layoutKey = null;
+
+  // Hands out pages for the events at this minute. Events are in start order,
+  // so the past ones come first and the ones dropped are the oldest.
+  function layout(now) {
+    layoutKey = pastKey(now);
+    const past = layoutKey.split('').filter((c) => c === '1').length;
+    const upcoming = eventItems.length - past;
+    pageCount = Math.max(1, Math.ceil(upcoming / PAGE_SIZE));
+    const dropped = Math.max(0, eventItems.length - pageCount * PAGE_SIZE);
+    eventItems.forEach((el, i) => {
+      el.dataset.page = i < dropped ? '' : Math.floor((i - dropped) / PAGE_SIZE);
+    });
+    pager.hidden = pageCount < 2;
+    pager.innerHTML = Array.from({ length: pageCount }, (_, p) =>
+      `<span class="pager__item" data-page="${p}"></span>`).join('');
+    pagerItems = pager.querySelectorAll('.pager__item');
+  }
+
+  // A new layout waits for the next page turn, so nothing jumps mid-page.
   function showPage(p) {
     const first = currentPage === -1;
+    if (layoutKey !== pastKey(minutesNow())) layout(minutesNow());
+    p %= pageCount;
     currentPage = p;
     pagerItems.forEach((el) => {
       el.classList.remove('is-current');
@@ -209,7 +238,7 @@
     setTimeout(() => {
       let n = 0;
       eventItems.forEach((el) => {
-        el.hidden = Number(el.dataset.page) !== p;
+        el.hidden = el.dataset.page !== String(p);
         if (!el.hidden) el.style.setProperty('--i', n++);
       });
       eventList.classList.add('is-in');
@@ -218,7 +247,9 @@
 
   stage.style.setProperty('--page-duration', PAGE_SECONDS + 's');
   showPage(0);
-  if (pageCount > 1) setInterval(() => showPage((currentPage + 1) % pageCount), PAGE_SECONDS * 1000);
+  setInterval(() => {
+    if (pageCount > 1 || layoutKey !== pastKey(minutesNow())) showPage(currentPage + 1);
+  }, PAGE_SECONDS * 1000);
 
   function tick() {
     stage.querySelector('.clock__time').textContent = clockText();
