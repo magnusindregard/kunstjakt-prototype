@@ -39,16 +39,16 @@
   // order. An event counts as over five minutes after it has started, when
   // it's too late to join.
   const EVENTS = [
-    { time: '12.00–12.10', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
-    { time: '12.00–13.30', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
-    { time: '12.30–12.40', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
-    { time: '14.00–14.45', type: 'Omvisning', title: 'Kunstaktivisme', info: 'Påmelding i infoskranken' },
-    { time: '14.30–16.00', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
-    { time: '15.00–15.45', type: 'Omvisning', title: 'Enkle hytter, rike liv: lærdommer fra Zappfe og Næss', info: 'Påmelding i infoskranken' },
-    { time: '16.00–16.45', type: 'Omvisning', title: 'Malerin̶n̶e̶', info: 'Påmelding i infoskranken' },
-    { time: '17.00–17.45', type: 'Omvisning', title: 'Søylerommet', info: 'Påmelding i infoskranken' },
-    { time: '18.00–18.45', type: 'Kunstnersamtale', title: 'Hvem fikk kalle seg maler?', info: 'Auditoriet. Gratis med billett' },
-    { time: '19.00–19.40', type: 'Konsert', title: 'Kveldskonsert i Lyshallen', info: 'Fri entré' },
+    { time: '12:00–12:10', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
+    { time: '12:00–13:30', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
+    { time: '12:30–12:40', type: 'Omvisning', title: 'Et øyeblikk. Ett verk på 10 minutter.', info: 'Påmelding i infoskranken' },
+    { time: '14:00–14:45', type: 'Omvisning', title: 'Kunstaktivisme', info: 'Påmelding i infoskranken' },
+    { time: '14:30–16:00', type: 'Familieverksted', title: 'Urskogen Silva', info: 'Påmelding i infoskranken' },
+    { time: '15:00–15:45', type: 'Omvisning', title: 'Enkle hytter, rike liv: lærdommer fra Zapffe og Næss', info: 'Påmelding i infoskranken' },
+    { time: '16:00–16:45', type: 'Omvisning', title: 'Malerin̶n̶e̶', info: 'Påmelding i infoskranken' },
+    { time: '17:00–17:45', type: 'Omvisning', title: 'Søylerommet', info: 'Påmelding i infoskranken' },
+    { time: '18:00–18:45', type: 'Kunstnersamtale', title: 'Hvem fikk kalle seg maler?', info: 'Auditoriet. Gratis med billett' },
+    { time: '19:00–19:40', type: 'Konsert', title: 'Kveldskonsert i Lyshallen', info: 'Fri entré' },
   ];
 
   // Pages marked data-paginate show the events five to a page and step
@@ -66,12 +66,14 @@
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+  const ORDINAL = { 1: 'st', 2: 'nd', 3: 'rd' };
+
   // "1/2" + "Etasje" reads as "1. og 2. etasje"; a named floor like Lyshallen
   // keeps its name and gets the storey after it.
   function floorLines(ex) {
     const storeys = ex.floorLabel.split('/');
     const no = storeys.map((n) => n + '.').join(' og ') + ' etasje';
-    const en = storeys.map((n) => n + '.').join(' and ') + ' floor';
+    const en = storeys.map((n) => n + (ORDINAL[n] || 'th')).join(' and ') + ' floor';
     if (ex.floorTitleNo.toLowerCase() === 'etasje') return [no, en];
     return [ex.floorTitleNo + ', ' + no, ex.floorTitleEn + ', ' + en];
   }
@@ -92,7 +94,7 @@
 
   const GREY_AFTER_START = 5;
 
-  // Minute of the day the event greys out, from the start of "12.00–12.10".
+  // Minute of the day the event greys out, from the start of "12:00–12:10".
   // A bare time with no range counts as a start.
   function greyAt(time) {
     const start = time.match(/\d{1,2}[.:]\d{2}/);
@@ -136,7 +138,7 @@
       </ul>
       <div class="pager" hidden></div>
     </aside>
-    <div class="clock"><img class="clock__icon" src="assets/clock.svg" alt=""><span class="clock__time"></span></div>
+    <div class="clock"><img class="clock__icon" src="assets/${variant === 'v5' ? 'clock-v5' : 'clock'}.svg" alt=""><span class="clock__time"></span></div>
   `;
   document.body.appendChild(stage);
 
